@@ -1,0 +1,383 @@
+name: Tests and Quality Checks
+
+on:
+  push:
+    branches: [ main, develop, "claude/**" ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  # ============================================================================
+  # UNIT TESTS
+  # ============================================================================
+  unit-tests:
+    name: Unit Tests (Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-glx \
+            libglib2.0-0 \
+            libsm6 \
+            libxext6 \
+            libxrender-dev \
+            libgomp1
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-xdist pytest-timeout
+          pip install flake8 black mypy isort
+
+      - name: Run unit tests
+        run: |
+          pytest tests/unit/ \
+            -v \
+            -m "unit and not gpu and not network" \
+            --cov=space_debris_tracker \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-report=term \
+            --junit-xml=test-results/junit-unit-${{ matrix.python-version }}.xml \
+            --maxfail=5
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          flags: unit-tests
+          name: codecov-${{ matrix.python-version }}
+          fail_ci_if_error: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-unit-${{ matrix.python-version }}
+          path: test-results/
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-unit-${{ matrix.python-version }}
+          path: htmlcov/
+
+  # ============================================================================
+  # INTEGRATION TESTS
+  # ============================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    services:
+      neo4j:
+        image: neo4j:5.14.0
+        env:
+          NEO4J_AUTH: neo4j/test_password
+        ports:
+          - 7687:7687
+          - 7474:7474
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p test_password 'RETURN 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      kafka:
+        image: confluentinc/cp-kafka:7.5.0
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+        ports:
+          - 9092:9092
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Wait for services
+        run: |
+          timeout 60 bash -c 'until nc -z localhost 7687; do sleep 1; done'
+          echo "Neo4j is ready"
+
+      - name: Run integration tests
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USER: neo4j
+          NEO4J_PASSWORD: test_password
+          KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+        run: |
+          pytest tests/integration/ \
+            -v \
+            -m "integration and not slow" \
+            --cov=space_debris_tracker \
+            --cov-append \
+            --cov-report=xml \
+            --junit-xml=test-results/junit-integration.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-integration
+          path: test-results/
+
+  # ============================================================================
+  # CODE QUALITY
+  # ============================================================================
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black mypy isort pylint
+
+      - name: Run Black (code formatting)
+        run: |
+          black --check --diff space_debris_tracker/ tests/
+
+      - name: Run isort (import sorting)
+        run: |
+          isort --check-only --diff space_debris_tracker/ tests/
+
+      - name: Run Flake8 (linting)
+        run: |
+          flake8 space_debris_tracker/ tests/ \
+            --count \
+            --select=E9,F63,F7,F82 \
+            --show-source \
+            --statistics \
+            --max-line-length=100 \
+            --exclude=__pycache__,*.pyc,.git,build,dist
+
+      - name: Run Flake8 (warnings)
+        continue-on-error: true
+        run: |
+          flake8 space_debris_tracker/ tests/ \
+            --count \
+            --exit-zero \
+            --max-complexity=15 \
+            --max-line-length=100 \
+            --statistics \
+            --exclude=__pycache__,*.pyc,.git,build,dist
+
+      - name: Run MyPy (type checking)
+        continue-on-error: true
+        run: |
+          mypy space_debris_tracker/ \
+            --ignore-missing-imports \
+            --no-strict-optional \
+            --warn-return-any \
+            --warn-unused-configs
+
+      - name: Run Pylint
+        continue-on-error: true
+        run: |
+          pylint space_debris_tracker/ \
+            --disable=C0111,C0103,R0913,R0914,W0212 \
+            --max-line-length=100 \
+            --output-format=colorized
+
+  # ============================================================================
+  # PERFORMANCE TESTS
+  # ============================================================================
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-benchmark
+
+      - name: Run performance tests
+        run: |
+          pytest tests/performance/ \
+            -v \
+            -m "performance and not slow" \
+            --junit-xml=test-results/junit-performance.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-performance
+          path: test-results/
+
+  # ============================================================================
+  # SECURITY SCAN
+  # ============================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety bandit
+
+      - name: Run Safety (dependency check)
+        continue-on-error: true
+        run: |
+          safety check --json || true
+
+      - name: Run Bandit (security linting)
+        continue-on-error: true
+        run: |
+          bandit -r space_debris_tracker/ \
+            -f json \
+            -o bandit-report.json \
+            || true
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+
+  # ============================================================================
+  # TEST SUMMARY
+  # ============================================================================
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, code-quality, performance-tests]
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Display test summary
+        run: |
+          echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+
+          # Count test result files
+          UNIT_TESTS=$(find . -name "junit-unit-*.xml" | wc -l)
+          INTEGRATION_TESTS=$(find . -name "junit-integration.xml" | wc -l)
+          PERFORMANCE_TESTS=$(find . -name "junit-performance.xml" | wc -l)
+
+          echo "- Unit Tests: $UNIT_TESTS files" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: $INTEGRATION_TESTS files" >> $GITHUB_STEP_SUMMARY
+          echo "- Performance Tests: $PERFORMANCE_TESTS files" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check test status
+        run: |
+          if [ "${{ needs.unit-tests.result }}" != "success" ]; then
+            echo "❌ Unit tests failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.integration-tests.result }}" != "success" ]; then
+            echo "⚠️  Integration tests failed"
+            # Don't fail on integration test failures
+          fi
+
+          if [ "${{ needs.code-quality.result }}" != "success" ]; then
+            echo "⚠️  Code quality checks failed"
+            # Don't fail on quality check failures
+          fi
+
+          echo "✅ All critical tests passed"
+
+  # ============================================================================
+  # DOCKER BUILD (on main branch)
+  # ============================================================================
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: space-debris-tracker:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          docker run --rm space-debris-tracker:${{ github.sha }} python -c "import space_debris_tracker; print('OK')"
