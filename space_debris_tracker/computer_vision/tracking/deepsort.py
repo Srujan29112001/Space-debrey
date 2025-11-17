@@ -3,11 +3,12 @@ DeepSORT Multi-Object Tracking
 Implements Kalman filtering and Hungarian algorithm for track assignment
 """
 
-import numpy as np
-from typing import List, Tuple, Optional
 from dataclasses import dataclass, field
-from scipy.optimize import linear_sum_assignment
+from typing import List, Optional, Tuple
+
+import numpy as np
 from filterpy.kalman import KalmanFilter
+from scipy.optimize import linear_sum_assignment
 
 
 @dataclass
@@ -29,23 +30,27 @@ class KalmanBoxTracker:
         self.kf = KalmanFilter(dim_x=7, dim_z=4)
 
         # State transition matrix
-        self.kf.F = np.array([
-            [1, 0, 0, 0, 1, 0, 0],  # x
-            [0, 1, 0, 0, 0, 1, 0],  # y
-            [0, 0, 1, 0, 0, 0, 1],  # s (scale)
-            [0, 0, 0, 1, 0, 0, 0],  # r (aspect ratio)
-            [0, 0, 0, 0, 1, 0, 0],  # dx
-            [0, 0, 0, 0, 0, 1, 0],  # dy
-            [0, 0, 0, 0, 0, 0, 1],  # ds
-        ])
+        self.kf.F = np.array(
+            [
+                [1, 0, 0, 0, 1, 0, 0],  # x
+                [0, 1, 0, 0, 0, 1, 0],  # y
+                [0, 0, 1, 0, 0, 0, 1],  # s (scale)
+                [0, 0, 0, 1, 0, 0, 0],  # r (aspect ratio)
+                [0, 0, 0, 0, 1, 0, 0],  # dx
+                [0, 0, 0, 0, 0, 1, 0],  # dy
+                [0, 0, 0, 0, 0, 0, 1],  # ds
+            ]
+        )
 
         # Measurement matrix
-        self.kf.H = np.array([
-            [1, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0],
-        ])
+        self.kf.H = np.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+            ]
+        )
 
         # Measurement noise
         self.kf.R[2:, 2:] *= 10.0
@@ -135,13 +140,15 @@ class DeepSORTTracker:
     DeepSORT tracker for multi-object tracking
     """
 
-    def __init__(self,
-                 max_dist: float = 0.2,
-                 min_confidence: float = 0.3,
-                 max_iou_distance: float = 0.7,
-                 max_age: int = 70,
-                 n_init: int = 3,
-                 nn_budget: int = 100):
+    def __init__(
+        self,
+        max_dist: float = 0.2,
+        min_confidence: float = 0.3,
+        max_iou_distance: float = 0.7,
+        max_age: int = 70,
+        n_init: int = 3,
+        nn_budget: int = 100,
+    ):
         """
         Initialize DeepSORT tracker
 
@@ -163,7 +170,9 @@ class DeepSORTTracker:
         self.tracks: List[KalmanBoxTracker] = []
         self.next_id = 0
 
-    def update(self, detections: List, frame: Optional[np.ndarray] = None) -> List[KalmanBoxTracker]:
+    def update(
+        self, detections: List, frame: Optional[np.ndarray] = None
+    ) -> List[KalmanBoxTracker]:
         """
         Update tracker with new detections
 
@@ -179,7 +188,7 @@ class DeepSORTTracker:
             track.predict()
 
         # Filter detections by confidence
-        if hasattr(detections[0] if detections else None, 'confidence'):
+        if hasattr(detections[0] if detections else None, "confidence"):
             detections = [d for d in detections if d.confidence >= self.min_confidence]
 
         # Match detections to tracks
@@ -199,7 +208,9 @@ class DeepSORTTracker:
         # Return confirmed tracks
         return [t for t in self.tracks if t.hits >= self.n_init]
 
-    def _match(self, detections: List) -> Tuple[List[Tuple[int, int]], List[int], List[int]]:
+    def _match(
+        self, detections: List
+    ) -> Tuple[List[Tuple[int, int]], List[int], List[int]]:
         """
         Match detections to existing tracks
 
@@ -244,8 +255,9 @@ class DeepSORTTracker:
 
         return matched, unmatched_dets, unmatched_trks
 
-    def _iou_distance(self, bbox1: Tuple[int, int, int, int],
-                     bbox2: Tuple[int, int, int, int]) -> float:
+    def _iou_distance(
+        self, bbox1: Tuple[int, int, int, int], bbox2: Tuple[int, int, int, int]
+    ) -> float:
         """
         Compute IoU distance between two bounding boxes
 
@@ -287,10 +299,7 @@ class DeepSORTTracker:
         Args:
             detection: Detection object
         """
-        track = KalmanBoxTracker(
-            bbox=detection.bbox,
-            track_id=self.next_id
-        )
+        track = KalmanBoxTracker(bbox=detection.bbox, track_id=self.next_id)
         self.tracks.append(track)
         self.next_id += 1
 

@@ -3,23 +3,25 @@ Streamlit Dashboard for Space Debris Tracking
 3D visualization with Cesium.js integration
 """
 
-import streamlit as st
-import plotly.graph_objects as go
-import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
+
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
 import requests
+import streamlit as st
 
 # Page config
 st.set_page_config(
     page_title="Space Debris Tracking System",
     page_icon="🛰️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # Custom CSS
-st.markdown("""
+st.markdown(
+    """
 <style>
     .main-header {
         font-size: 2.5rem;
@@ -47,7 +49,9 @@ st.markdown("""
         margin: 0.5rem 0;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 class SpaceDebrisDashboard:
@@ -59,19 +63,23 @@ class SpaceDebrisDashboard:
     def run(self):
         """Run the dashboard"""
         # Header
-        st.markdown('<h1 class="main-header">🛰️ Space Debris Tracking System</h1>',
-                   unsafe_allow_html=True)
+        st.markdown(
+            '<h1 class="main-header">🛰️ Space Debris Tracking System</h1>',
+            unsafe_allow_html=True,
+        )
 
         # Sidebar
         self.render_sidebar()
 
         # Main content
-        tab1, tab2, tab3, tab4 = st.tabs([
-            "🌍 3D Visualization",
-            "📊 Risk Analysis",
-            "🎯 Conjunctions",
-            "📈 Statistics"
-        ])
+        tab1, tab2, tab3, tab4 = st.tabs(
+            [
+                "🌍 3D Visualization",
+                "📊 Risk Analysis",
+                "🎯 Conjunctions",
+                "📈 Statistics",
+            ]
+        )
 
         with tab1:
             self.render_3d_visualization()
@@ -98,18 +106,15 @@ class SpaceDebrisDashboard:
                     "ISS (25544)",
                     "Hubble (20580)",
                     "Starlink-1007 (44713)",
-                    "Sentinel-1A (39634)"
+                    "Sentinel-1A (39634)",
                 ],
-                default=["ISS (25544)"]
+                default=["ISS (25544)"],
             )
 
             # Time range
             st.subheader("⏰ Time Range")
             time_range = st.slider(
-                "Prediction Horizon (days)",
-                min_value=1,
-                max_value=30,
-                value=7
+                "Prediction Horizon (days)", min_value=1, max_value=30, value=7
             )
 
             # Risk thresholds
@@ -119,7 +124,7 @@ class SpaceDebrisDashboard:
                 min_value=1e-6,
                 max_value=1e-2,
                 value=1e-4,
-                format="%.2e"
+                format="%.2e",
             )
 
             # Update rate
@@ -127,7 +132,7 @@ class SpaceDebrisDashboard:
             update_rate = st.selectbox(
                 "Refresh Rate",
                 options=["Real-time (1 Hz)", "Every 10s", "Every minute", "Manual"],
-                index=1
+                index=1,
             )
 
             # System status
@@ -171,13 +176,17 @@ class SpaceDebrisDashboard:
         y = 6371 * np.outer(np.sin(u), np.sin(v))
         z = 6371 * np.outer(np.ones(np.size(u)), np.cos(v))
 
-        fig.add_trace(go.Surface(
-            x=x, y=y, z=z,
-            colorscale=[[0, 'rgb(30, 58, 138)'], [1, 'rgb(59, 130, 246)']],
-            showscale=False,
-            name='Earth',
-            opacity=0.9
-        ))
+        fig.add_trace(
+            go.Surface(
+                x=x,
+                y=y,
+                z=z,
+                colorscale=[[0, "rgb(30, 58, 138)"], [1, "rgb(59, 130, 246)"]],
+                showscale=False,
+                name="Earth",
+                opacity=0.9,
+            )
+        )
 
         # Add ISS orbit
         theta = np.linspace(0, 2 * np.pi, 100)
@@ -186,28 +195,32 @@ class SpaceDebrisDashboard:
         y_orbit = r * np.sin(theta)
         z_orbit = np.zeros_like(theta)
 
-        fig.add_trace(go.Scatter3d(
-            x=x_orbit,
-            y=y_orbit,
-            z=z_orbit,
-            mode='lines',
-            line=dict(color='cyan', width=2),
-            name='ISS Orbit'
-        ))
+        fig.add_trace(
+            go.Scatter3d(
+                x=x_orbit,
+                y=y_orbit,
+                z=z_orbit,
+                mode="lines",
+                line=dict(color="cyan", width=2),
+                name="ISS Orbit",
+            )
+        )
 
         # Add ISS position
         iss_theta = (datetime.now().timestamp() / 5580) * 2 * np.pi
         iss_x = r * np.cos(iss_theta)
         iss_y = r * np.sin(iss_theta)
 
-        fig.add_trace(go.Scatter3d(
-            x=[iss_x],
-            y=[iss_y],
-            z=[0],
-            mode='markers',
-            marker=dict(size=8, color='blue', symbol='diamond'),
-            name='ISS'
-        ))
+        fig.add_trace(
+            go.Scatter3d(
+                x=[iss_x],
+                y=[iss_y],
+                z=[0],
+                mode="markers",
+                marker=dict(size=8, color="blue", symbol="diamond"),
+                name="ISS",
+            )
+        )
 
         # Add some debris
         np.random.seed(42)
@@ -220,27 +233,29 @@ class SpaceDebrisDashboard:
         debris_y = debris_r * np.sin(debris_phi) * np.sin(debris_theta)
         debris_z = debris_r * np.cos(debris_phi)
 
-        fig.add_trace(go.Scatter3d(
-            x=debris_x,
-            y=debris_y,
-            z=debris_z,
-            mode='markers',
-            marker=dict(size=3, color='red', opacity=0.6),
-            name='Debris'
-        ))
+        fig.add_trace(
+            go.Scatter3d(
+                x=debris_x,
+                y=debris_y,
+                z=debris_z,
+                mode="markers",
+                marker=dict(size=3, color="red", opacity=0.6),
+                name="Debris",
+            )
+        )
 
         # Layout
         fig.update_layout(
             scene=dict(
-                xaxis=dict(showgrid=False, showticklabels=False, title=''),
-                yaxis=dict(showgrid=False, showticklabels=False, title=''),
-                zaxis=dict(showgrid=False, showticklabels=False, title=''),
-                bgcolor='rgb(10, 10, 30)',
-                aspectmode='data'
+                xaxis=dict(showgrid=False, showticklabels=False, title=""),
+                yaxis=dict(showgrid=False, showticklabels=False, title=""),
+                zaxis=dict(showgrid=False, showticklabels=False, title=""),
+                bgcolor="rgb(10, 10, 30)",
+                aspectmode="data",
             ),
             showlegend=True,
             height=600,
-            margin=dict(l=0, r=0, t=0, b=0)
+            margin=dict(l=0, r=0, t=0, b=0),
         )
 
         return fig
@@ -267,44 +282,50 @@ class SpaceDebrisDashboard:
         # Risk timeline
         st.markdown("### Risk Timeline")
 
-        dates = pd.date_range(start=datetime.now(), periods=7, freq='D')
-        risk_data = pd.DataFrame({
-            'Date': dates,
-            'High': np.random.randint(2, 8, 7),
-            'Medium': np.random.randint(10, 20, 7),
-            'Low': np.random.randint(30, 50, 7)
-        })
+        dates = pd.date_range(start=datetime.now(), periods=7, freq="D")
+        risk_data = pd.DataFrame(
+            {
+                "Date": dates,
+                "High": np.random.randint(2, 8, 7),
+                "Medium": np.random.randint(10, 20, 7),
+                "Low": np.random.randint(30, 50, 7),
+            }
+        )
 
         fig = go.Figure()
 
-        fig.add_trace(go.Scatter(
-            x=risk_data['Date'],
-            y=risk_data['High'],
-            name='High Risk',
-            stackgroup='one',
-            fillcolor='rgba(239, 68, 68, 0.7)'
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=risk_data["Date"],
+                y=risk_data["High"],
+                name="High Risk",
+                stackgroup="one",
+                fillcolor="rgba(239, 68, 68, 0.7)",
+            )
+        )
 
-        fig.add_trace(go.Scatter(
-            x=risk_data['Date'],
-            y=risk_data['Medium'],
-            name='Medium Risk',
-            stackgroup='one',
-            fillcolor='rgba(245, 158, 11, 0.7)'
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=risk_data["Date"],
+                y=risk_data["Medium"],
+                name="Medium Risk",
+                stackgroup="one",
+                fillcolor="rgba(245, 158, 11, 0.7)",
+            )
+        )
 
-        fig.add_trace(go.Scatter(
-            x=risk_data['Date'],
-            y=risk_data['Low'],
-            name='Low Risk',
-            stackgroup='one',
-            fillcolor='rgba(34, 197, 94, 0.7)'
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=risk_data["Date"],
+                y=risk_data["Low"],
+                name="Low Risk",
+                stackgroup="one",
+                fillcolor="rgba(34, 197, 94, 0.7)",
+            )
+        )
 
         fig.update_layout(
-            height=400,
-            yaxis_title='Number of Conjunctions',
-            hovermode='x unified'
+            height=400, yaxis_title="Number of Conjunctions", hovermode="x unified"
         )
 
         st.plotly_chart(fig, use_container_width=True)
@@ -314,37 +335,48 @@ class SpaceDebrisDashboard:
         st.subheader("Active Conjunction Assessments")
 
         # Sample data
-        conjunctions = pd.DataFrame({
-            'Primary': ['ISS', 'Hubble', 'Sentinel-1A', 'ISS', 'Starlink-1007'],
-            'Secondary': ['DEBRIS_12345', 'DEBRIS_67890', 'DEBRIS_11111', 'DEBRIS_22222', 'DEBRIS_33333'],
-            'TCA': [
-                (datetime.now() + timedelta(hours=12)).strftime('%Y-%m-%d %H:%M'),
-                (datetime.now() + timedelta(hours=24)).strftime('%Y-%m-%d %H:%M'),
-                (datetime.now() + timedelta(hours=36)).strftime('%Y-%m-%d %H:%M'),
-                (datetime.now() + timedelta(hours=48)).strftime('%Y-%m-%d %H:%M'),
-                (datetime.now() + timedelta(hours=60)).strftime('%Y-%m-%d %H:%M'),
-            ],
-            'Miss Distance (km)': [0.8, 2.5, 1.2, 4.5, 0.5],
-            'Probability': [2.5e-4, 1.5e-4, 2.0e-4, 5.0e-5, 3.5e-4],
-            'Risk': ['HIGH', 'MEDIUM', 'HIGH', 'LOW', 'CRITICAL']
-        })
+        conjunctions = pd.DataFrame(
+            {
+                "Primary": ["ISS", "Hubble", "Sentinel-1A", "ISS", "Starlink-1007"],
+                "Secondary": [
+                    "DEBRIS_12345",
+                    "DEBRIS_67890",
+                    "DEBRIS_11111",
+                    "DEBRIS_22222",
+                    "DEBRIS_33333",
+                ],
+                "TCA": [
+                    (datetime.now() + timedelta(hours=12)).strftime("%Y-%m-%d %H:%M"),
+                    (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M"),
+                    (datetime.now() + timedelta(hours=36)).strftime("%Y-%m-%d %H:%M"),
+                    (datetime.now() + timedelta(hours=48)).strftime("%Y-%m-%d %H:%M"),
+                    (datetime.now() + timedelta(hours=60)).strftime("%Y-%m-%d %H:%M"),
+                ],
+                "Miss Distance (km)": [0.8, 2.5, 1.2, 4.5, 0.5],
+                "Probability": [2.5e-4, 1.5e-4, 2.0e-4, 5.0e-5, 3.5e-4],
+                "Risk": ["HIGH", "MEDIUM", "HIGH", "LOW", "CRITICAL"],
+            }
+        )
 
         # Risk color coding
         def color_risk(val):
             colors = {
-                'CRITICAL': 'background-color: #dc2626; color: white',
-                'HIGH': 'background-color: #ef4444; color: white',
-                'MEDIUM': 'background-color: #f59e0b; color: white',
-                'LOW': 'background-color: #22c55e; color: white'
+                "CRITICAL": "background-color: #dc2626; color: white",
+                "HIGH": "background-color: #ef4444; color: white",
+                "MEDIUM": "background-color: #f59e0b; color: white",
+                "LOW": "background-color: #22c55e; color: white",
             }
-            return colors.get(val, '')
+            return colors.get(val, "")
 
-        styled = conjunctions.style.applymap(color_risk, subset=['Risk'])
+        styled = conjunctions.style.applymap(color_risk, subset=["Risk"])
         st.dataframe(styled, use_container_width=True)
 
         # Details expander
         with st.expander("🔍 View Detailed Analysis"):
-            selected_conj = st.selectbox("Select Conjunction", conjunctions['Primary'] + ' vs ' + conjunctions['Secondary'])
+            selected_conj = st.selectbox(
+                "Select Conjunction",
+                conjunctions["Primary"] + " vs " + conjunctions["Secondary"],
+            )
 
             col1, col2 = st.columns(2)
 
@@ -371,15 +403,19 @@ class SpaceDebrisDashboard:
             # Size distribution
             st.markdown("### Size Distribution")
 
-            sizes = ['Large (>10cm)', 'Medium (1-10cm)', 'Small (<1cm)']
+            sizes = ["Large (>10cm)", "Medium (1-10cm)", "Small (<1cm)"]
             counts = [3450, 8920, 2860]
 
-            fig = go.Figure(data=[go.Pie(
-                labels=sizes,
-                values=counts,
-                hole=0.4,
-                marker=dict(colors=['#ef4444', '#f59e0b', '#22c55e'])
-            )])
+            fig = go.Figure(
+                data=[
+                    go.Pie(
+                        labels=sizes,
+                        values=counts,
+                        hole=0.4,
+                        marker=dict(colors=["#ef4444", "#f59e0b", "#22c55e"]),
+                    )
+                ]
+            )
 
             fig.update_layout(height=300)
             st.plotly_chart(fig, use_container_width=True)
@@ -388,26 +424,38 @@ class SpaceDebrisDashboard:
             # Altitude distribution
             st.markdown("### Altitude Distribution")
 
-            altitudes = ['LEO (0-2000km)', 'MEO (2000-35000km)', 'GEO (35000km+)']
+            altitudes = ["LEO (0-2000km)", "MEO (2000-35000km)", "GEO (35000km+)"]
             debris_counts = [8920, 2340, 3970]
 
-            fig = go.Figure(data=[go.Bar(
-                x=altitudes,
-                y=debris_counts,
-                marker=dict(color=['#3b82f6', '#8b5cf6', '#ec4899'])
-            )])
+            fig = go.Figure(
+                data=[
+                    go.Bar(
+                        x=altitudes,
+                        y=debris_counts,
+                        marker=dict(color=["#3b82f6", "#8b5cf6", "#ec4899"]),
+                    )
+                ]
+            )
 
-            fig.update_layout(height=300, yaxis_title='Number of Objects')
+            fig.update_layout(height=300, yaxis_title="Number of Objects")
             st.plotly_chart(fig, use_container_width=True)
 
         # Origin breakdown
         st.markdown("### Debris Origin")
 
-        origins = pd.DataFrame({
-            'Origin': ['Collision Fragments', 'Launch Debris', 'Decommissioned Satellites', 'Anomalies', 'Other'],
-            'Count': [6420, 5130, 3680, 1250, 750],
-            'Percentage': [42.1, 33.7, 24.1, 8.2, 4.9]
-        })
+        origins = pd.DataFrame(
+            {
+                "Origin": [
+                    "Collision Fragments",
+                    "Launch Debris",
+                    "Decommissioned Satellites",
+                    "Anomalies",
+                    "Other",
+                ],
+                "Count": [6420, 5130, 3680, 1250, 750],
+                "Percentage": [42.1, 33.7, 24.1, 8.2, 4.9],
+            }
+        )
 
         st.dataframe(origins, use_container_width=True)
 

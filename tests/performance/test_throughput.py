@@ -3,13 +3,16 @@ Performance Tests - Throughput
 Measure system processing throughput
 """
 
-import pytest
-import numpy as np
 import time
 from unittest.mock import patch
 
+import numpy as np
+import pytest
+
 from space_debris_tracker.computer_vision.detector import SpaceDebrisDetector
-from space_debris_tracker.trajectory_prediction.orbit_predictor import OrbitPredictionEngine
+from space_debris_tracker.trajectory_prediction.orbit_predictor import (
+    OrbitPredictionEngine,
+)
 from tests.utils import generate_image_sequence, generate_orbital_state
 
 
@@ -19,8 +22,8 @@ class TestDetectionThroughput:
 
     def test_images_per_second(self, benchmark_config):
         """Measure images processed per second"""
-        with patch('torch.hub.load'):
-            detector = SpaceDebrisDetector(device='cpu')
+        with patch("torch.hub.load"):
+            detector = SpaceDebrisDetector(device="cpu")
             detector.yolo.detect = lambda x: []
             detector.dino.detect_novel_objects = lambda x: []
 
@@ -44,8 +47,8 @@ class TestDetectionThroughput:
 
     def test_batch_processing_throughput(self):
         """Measure batch processing throughput"""
-        with patch('torch.hub.load'):
-            detector = SpaceDebrisDetector(device='cpu')
+        with patch("torch.hub.load"):
+            detector = SpaceDebrisDetector(device="cpu")
             detector.yolo.detect = lambda x: []
 
             images = generate_image_sequence(n_frames=50)
@@ -55,7 +58,7 @@ class TestDetectionThroughput:
                 start = time.time()
 
                 for i in range(0, len(images), batch_size):
-                    batch = images[i:i+batch_size]
+                    batch = images[i : i + batch_size]
                     for img in batch:
                         detector.process_telescope_image(img)
 
@@ -70,8 +73,8 @@ class TestDetectionThroughput:
         if not pytest.importorskip("torch").cuda.is_available():
             pytest.skip("CUDA not available")
 
-        with patch('torch.hub.load'):
-            detector = SpaceDebrisDetector(device='cuda')
+        with patch("torch.hub.load"):
+            detector = SpaceDebrisDetector(device="cuda")
             detector.yolo.detect = lambda x: []
 
             images = generate_image_sequence(n_frames=100)
@@ -96,10 +99,10 @@ class TestPredictionThroughput:
 
     def test_predictions_per_second(self):
         """Measure trajectory predictions per second"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         # Generate test states
-        states = [generate_orbital_state(altitude=400.0 + i*10) for i in range(20)]
+        states = [generate_orbital_state(altitude=400.0 + i * 10) for i in range(20)]
 
         start = time.time()
 
@@ -108,7 +111,7 @@ class TestPredictionThroughput:
                 initial_state=state,
                 time_horizon=3600,
                 dt=300.0,
-                include_uncertainty=False
+                include_uncertainty=False,
             )
 
         elapsed = time.time() - start
@@ -123,15 +126,15 @@ class TestPredictionThroughput:
         """Measure concurrent prediction throughput"""
         import concurrent.futures
 
-        predictor = OrbitPredictionEngine(device='cpu')
-        states = [generate_orbital_state(altitude=400.0 + i*10) for i in range(10)]
+        predictor = OrbitPredictionEngine(device="cpu")
+        states = [generate_orbital_state(altitude=400.0 + i * 10) for i in range(10)]
 
         def predict(state):
             return predictor.predict_trajectory(
                 initial_state=state,
                 time_horizon=3600,
                 dt=300.0,
-                include_uncertainty=False
+                include_uncertainty=False,
             )
 
         start = time.time()
@@ -146,10 +149,10 @@ class TestPredictionThroughput:
 
     def test_long_term_prediction_throughput(self):
         """Measure long-term prediction performance"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
         state = generate_orbital_state(altitude=400.0)
 
-        time_horizons = [86400, 86400*7, 86400*30]  # 1 day, 1 week, 1 month
+        time_horizons = [86400, 86400 * 7, 86400 * 30]  # 1 day, 1 week, 1 month
 
         for horizon in time_horizons:
             start = time.time()
@@ -158,7 +161,7 @@ class TestPredictionThroughput:
                 initial_state=state,
                 time_horizon=horizon,
                 dt=3600.0,  # 1 hour steps
-                include_uncertainty=False
+                include_uncertainty=False,
             )
 
             elapsed = time.time() - start
@@ -196,17 +199,18 @@ class TestDataIngestionThroughput:
 
     def test_kafka_message_throughput(self, mock_kafka_consumer):
         """Measure Kafka message processing throughput"""
-        from space_debris_tracker.data_ingestion.kafka_consumer import KafkaStreamConsumer
+        from space_debris_tracker.data_ingestion.kafka_consumer import (
+            KafkaStreamConsumer,
+        )
         from tests.utils import generate_kafka_message
 
         consumer = KafkaStreamConsumer(
-            bootstrap_servers=['localhost:9092'],
-            topic='test'
+            bootstrap_servers=["localhost:9092"], topic="test"
         )
         consumer.consumer = mock_kafka_consumer
 
         # Generate messages
-        messages = [generate_kafka_message('tle') for _ in range(1000)]
+        messages = [generate_kafka_message("tle") for _ in range(1000)]
 
         start = time.time()
 
@@ -230,7 +234,7 @@ class TestEndToEndThroughput:
         from space_debris_tracker.data_ingestion.tle_parser import TLEParser
 
         parser = TLEParser()
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         name, line1, line2 = sample_tle_lines
 
@@ -250,7 +254,7 @@ class TestEndToEndThroughput:
                 initial_state=state,
                 time_horizon=3600,
                 dt=300.0,
-                include_uncertainty=False
+                include_uncertainty=False,
             )
 
         elapsed = time.time() - start
@@ -264,8 +268,8 @@ class TestEndToEndThroughput:
     @pytest.mark.slow
     def test_sustained_throughput(self):
         """Test sustained processing throughput"""
-        with patch('torch.hub.load'):
-            detector = SpaceDebrisDetector(device='cpu')
+        with patch("torch.hub.load"):
+            detector = SpaceDebrisDetector(device="cpu")
             detector.yolo.detect = lambda x: []
 
             # Generate large sequence

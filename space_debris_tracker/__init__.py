@@ -23,9 +23,9 @@ __author__ = "Space Debris Tracking Team"
 __license__ = "MIT"
 
 from .computer_vision import SpaceDebrisDetector
-from .trajectory_prediction import OrbitPredictionEngine
 from .knowledge_graph import SpaceKnowledgeGraph
 from .monitoring_agents import SpaceMonitoringAgent
+from .trajectory_prediction import OrbitPredictionEngine
 
 __all__ = [
     "SpaceDebrisDetector",

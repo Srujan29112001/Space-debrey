@@ -3,20 +3,22 @@ Validation Metrics for Space Debris Tracking Models
 Comprehensive evaluation for detection, trajectory prediction, and risk assessment
 """
 
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from typing import Dict, List, Tuple, Optional, Union
-from dataclasses import dataclass
-from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
 from scipy.stats import ks_2samp
-import matplotlib.pyplot as plt
-from pathlib import Path
+from sklearn.metrics import auc, precision_recall_curve, roc_auc_score
 
 
 @dataclass
 class DetectionMetrics:
     """Detection evaluation metrics"""
+
     precision: float
     recall: float
     f1_score: float
@@ -29,6 +31,7 @@ class DetectionMetrics:
 @dataclass
 class TrajectoryMetrics:
     """Trajectory prediction metrics"""
+
     position_rmse: float  # km
     velocity_rmse: float  # km/s
     position_mae: float  # km
@@ -42,6 +45,7 @@ class TrajectoryMetrics:
 @dataclass
 class ConjunctionMetrics:
     """Conjunction/collision risk metrics"""
+
     roc_auc: float
     pr_auc: float  # Precision-Recall AUC
     brier_score: float
@@ -65,13 +69,11 @@ class DetectionEvaluator:
             iou_thresholds: IoU thresholds for mAP calculation
         """
         self.num_classes = num_classes
-        self.iou_thresholds = iou_thresholds or [0.5, 0.75] + list(np.arange(0.5, 1.0, 0.05))
+        self.iou_thresholds = iou_thresholds or [0.5, 0.75] + list(
+            np.arange(0.5, 1.0, 0.05)
+        )
 
-    def compute_iou(
-        self,
-        boxes1: torch.Tensor,
-        boxes2: torch.Tensor
-    ) -> torch.Tensor:
+    def compute_iou(self, boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tensor:
         """
         Compute IoU between two sets of boxes
 
@@ -90,7 +92,9 @@ class DetectionEvaluator:
         inter_x2 = torch.min(boxes1[:, None, 2], boxes2[None, :, 2])
         inter_y2 = torch.min(boxes1[:, None, 3], boxes2[None, :, 3])
 
-        inter_area = torch.clamp(inter_x2 - inter_x1, min=0) * torch.clamp(inter_y2 - inter_y1, min=0)
+        inter_area = torch.clamp(inter_x2 - inter_x1, min=0) * torch.clamp(
+            inter_y2 - inter_y1, min=0
+        )
 
         union_area = area1[:, None] + area2[None, :] - inter_area
 
@@ -102,7 +106,7 @@ class DetectionEvaluator:
         self,
         predictions: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
         ground_truths: List[Tuple[torch.Tensor, torch.Tensor]],
-        iou_threshold: float = 0.5
+        iou_threshold: float = 0.5,
     ) -> float:
         """
         Compute Average Precision
@@ -140,7 +144,7 @@ class DetectionEvaluator:
                 all_scores.append(score.item())
 
                 # Find best matching ground truth
-                class_mask = (gt_labels == label)
+                class_mask = gt_labels == label
                 if not class_mask.any():
                     all_matches.append(0)
                     continue
@@ -186,7 +190,7 @@ class DetectionEvaluator:
     def evaluate(
         self,
         predictions: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
-        ground_truths: List[Tuple[torch.Tensor, torch.Tensor]]
+        ground_truths: List[Tuple[torch.Tensor, torch.Tensor]],
     ) -> DetectionMetrics:
         """
         Evaluate detection model
@@ -247,7 +251,7 @@ class DetectionEvaluator:
             map_50=map_50,
             map_75=map_75,
             map_50_95=map_50_95,
-            fps=0.0  # Should be measured separately
+            fps=0.0,  # Should be measured separately
         )
 
 
@@ -261,10 +265,7 @@ class TrajectoryEvaluator:
         pass
 
     def compute_horizon_errors(
-        self,
-        predictions: torch.Tensor,
-        targets: torch.Tensor,
-        horizons: List[int]
+        self, predictions: torch.Tensor, targets: torch.Tensor, horizons: List[int]
     ) -> Dict[int, float]:
         """
         Compute position errors at different time horizons
@@ -281,17 +282,15 @@ class TrajectoryEvaluator:
 
         for h in horizons:
             if h <= predictions.shape[1]:
-                pred_pos = predictions[:, h-1, :3]
-                targ_pos = targets[:, h-1, :3]
+                pred_pos = predictions[:, h - 1, :3]
+                targ_pos = targets[:, h - 1, :3]
                 rmse = torch.sqrt(torch.mean((pred_pos - targ_pos) ** 2)).item()
                 errors[h] = rmse
 
         return errors
 
     def compute_rtc_errors(
-        self,
-        predictions: torch.Tensor,
-        targets: torch.Tensor
+        self, predictions: torch.Tensor, targets: torch.Tensor
     ) -> Tuple[float, float, float]:
         """
         Compute Radial, Along-Track, Cross-Track errors
@@ -329,9 +328,9 @@ class TrajectoryEvaluator:
         cross_track_error = torch.sum(pos_error * c_hat, dim=2)
 
         # RMS errors
-        radial_rms = torch.sqrt(torch.mean(radial_error ** 2)).item()
-        along_track_rms = torch.sqrt(torch.mean(along_track_error ** 2)).item()
-        cross_track_rms = torch.sqrt(torch.mean(cross_track_error ** 2)).item()
+        radial_rms = torch.sqrt(torch.mean(radial_error**2)).item()
+        along_track_rms = torch.sqrt(torch.mean(along_track_error**2)).item()
+        cross_track_rms = torch.sqrt(torch.mean(cross_track_error**2)).item()
 
         return radial_rms, along_track_rms, cross_track_rms
 
@@ -339,7 +338,7 @@ class TrajectoryEvaluator:
         self,
         predictions: torch.Tensor,
         targets: torch.Tensor,
-        horizons: Optional[List[int]] = None
+        horizons: Optional[List[int]] = None,
     ) -> TrajectoryMetrics:
         """
         Evaluate trajectory prediction
@@ -356,31 +355,27 @@ class TrajectoryEvaluator:
             horizons = [1, 10, 50, 100]
 
         # Position and velocity RMSE/MAE
-        position_rmse = torch.sqrt(torch.mean(
-            (predictions[:, :, :3] - targets[:, :, :3]) ** 2
-        )).item()
+        position_rmse = torch.sqrt(
+            torch.mean((predictions[:, :, :3] - targets[:, :, :3]) ** 2)
+        ).item()
 
-        velocity_rmse = torch.sqrt(torch.mean(
-            (predictions[:, :, 3:] - targets[:, :, 3:]) ** 2
-        )).item()
+        velocity_rmse = torch.sqrt(
+            torch.mean((predictions[:, :, 3:] - targets[:, :, 3:]) ** 2)
+        ).item()
 
-        position_mae = torch.mean(torch.abs(
-            predictions[:, :, :3] - targets[:, :, :3]
-        )).item()
+        position_mae = torch.mean(
+            torch.abs(predictions[:, :, :3] - targets[:, :, :3])
+        ).item()
 
-        velocity_mae = torch.mean(torch.abs(
-            predictions[:, :, 3:] - targets[:, :, 3:]
-        )).item()
+        velocity_mae = torch.mean(
+            torch.abs(predictions[:, :, 3:] - targets[:, :, 3:])
+        ).item()
 
         # RTC errors
-        radial, along_track, cross_track = self.compute_rtc_errors(
-            predictions, targets
-        )
+        radial, along_track, cross_track = self.compute_rtc_errors(predictions, targets)
 
         # Horizon errors
-        horizon_errors = self.compute_horizon_errors(
-            predictions, targets, horizons
-        )
+        horizon_errors = self.compute_horizon_errors(predictions, targets, horizons)
 
         return TrajectoryMetrics(
             position_rmse=position_rmse,
@@ -390,7 +385,7 @@ class TrajectoryEvaluator:
             along_track_error=along_track,
             cross_track_error=cross_track,
             radial_error=radial,
-            horizon_errors=horizon_errors
+            horizon_errors=horizon_errors,
         )
 
 
@@ -404,10 +399,7 @@ class ConjunctionEvaluator:
         pass
 
     def compute_calibration_error(
-        self,
-        predicted_probs: np.ndarray,
-        true_labels: np.ndarray,
-        n_bins: int = 10
+        self, predicted_probs: np.ndarray, true_labels: np.ndarray, n_bins: int = 10
     ) -> float:
         """
         Compute Expected Calibration Error (ECE)
@@ -436,9 +428,7 @@ class ConjunctionEvaluator:
         return ece
 
     def compute_brier_score(
-        self,
-        predicted_probs: np.ndarray,
-        true_labels: np.ndarray
+        self, predicted_probs: np.ndarray, true_labels: np.ndarray
     ) -> float:
         """
         Compute Brier score
@@ -456,7 +446,7 @@ class ConjunctionEvaluator:
         self,
         predicted_probs: np.ndarray,
         true_labels: np.ndarray,
-        threshold: float = 0.5
+        threshold: float = 0.5,
     ) -> ConjunctionMetrics:
         """
         Evaluate conjunction prediction
@@ -480,9 +470,7 @@ class ConjunctionEvaluator:
         brier_score = self.compute_brier_score(predicted_probs, true_labels)
 
         # Calibration error
-        calibration_error = self.compute_calibration_error(
-            predicted_probs, true_labels
-        )
+        calibration_error = self.compute_calibration_error(predicted_probs, true_labels)
 
         # Classification metrics at threshold
         predictions = (predicted_probs >= threshold).astype(int)
@@ -513,7 +501,7 @@ class ConjunctionEvaluator:
             calibration_error=calibration_error,
             true_positive_rate=tpr,
             false_positive_rate=fpr,
-            detection_rate_at_1e4=detection_rate
+            detection_rate_at_1e4=detection_rate,
         )
 
 
@@ -521,7 +509,7 @@ def plot_calibration_curve(
     predicted_probs: np.ndarray,
     true_labels: np.ndarray,
     n_bins: int = 10,
-    save_path: Optional[Path] = None
+    save_path: Optional[Path] = None,
 ):
     """
     Plot calibration curve
@@ -546,11 +534,11 @@ def plot_calibration_curve(
             bin_accs.append(true_labels[mask].mean())
 
     plt.figure(figsize=(8, 6))
-    plt.plot([0, 1], [0, 1], 'k--', label='Perfect calibration')
-    plt.plot(bin_means, bin_accs, 'o-', label='Model')
-    plt.xlabel('Predicted probability')
-    plt.ylabel('True probability')
-    plt.title('Calibration Curve')
+    plt.plot([0, 1], [0, 1], "k--", label="Perfect calibration")
+    plt.plot(bin_means, bin_accs, "o-", label="Model")
+    plt.xlabel("Predicted probability")
+    plt.ylabel("True probability")
+    plt.title("Calibration Curve")
     plt.legend()
     plt.grid(True)
 
@@ -573,14 +561,11 @@ if __name__ == "__main__":
         (
             torch.tensor([[10, 10, 50, 50], [60, 60, 100, 100]]),
             torch.tensor([0.9, 0.8]),
-            torch.tensor([0, 1])
+            torch.tensor([0, 1]),
         )
     ]
     ground_truths = [
-        (
-            torch.tensor([[12, 12, 48, 48], [58, 58, 98, 98]]),
-            torch.tensor([0, 1])
-        )
+        (torch.tensor([[12, 12, 48, 48], [58, 58, 98, 98]]), torch.tensor([0, 1]))
     ]
 
     det_metrics = det_eval.evaluate(predictions, ground_truths)

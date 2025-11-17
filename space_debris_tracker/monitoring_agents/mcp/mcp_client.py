@@ -3,14 +3,15 @@ MCP Client for Inter-Agent Communication
 Uses ZeroMQ for message passing between monitoring agents
 """
 
-import json
 import asyncio
-from typing import Dict, List, Optional
+import json
 from datetime import datetime
+from typing import Dict, List, Optional
 
 try:
     import zmq
     import zmq.asyncio
+
     ZMQ_AVAILABLE = True
 except ImportError:
     ZMQ_AVAILABLE = False
@@ -23,9 +24,7 @@ class MCPClient:
     Enables communication between monitoring agents
     """
 
-    def __init__(self,
-                 agent_id: str,
-                 broker_url: str = "tcp://localhost:5555"):
+    def __init__(self, agent_id: str, broker_url: str = "tcp://localhost:5555"):
         """
         Initialize MCP client
 
@@ -71,12 +70,12 @@ class MCPClient:
             return
 
         # Add metadata
-        message['sender'] = self.agent_id
-        message['timestamp'] = datetime.utcnow().isoformat()
+        message["sender"] = self.agent_id
+        message["timestamp"] = datetime.utcnow().isoformat()
 
         # Serialize and send
         try:
-            msg_bytes = json.dumps(message).encode('utf-8')
+            msg_bytes = json.dumps(message).encode("utf-8")
             await self.publisher.send(msg_bytes)
         except Exception as e:
             print(f"Error broadcasting message: {e}")
@@ -101,14 +100,13 @@ class MCPClient:
             while True:
                 try:
                     msg_bytes = await asyncio.wait_for(
-                        self.subscriber.recv(),
-                        timeout=timeout
+                        self.subscriber.recv(), timeout=timeout
                     )
 
-                    message = json.loads(msg_bytes.decode('utf-8'))
+                    message = json.loads(msg_bytes.decode("utf-8"))
 
                     # Filter out own messages
-                    if message.get('sender') != self.agent_id:
+                    if message.get("sender") != self.agent_id:
                         messages.append(message)
 
                 except asyncio.TimeoutError:
@@ -127,7 +125,7 @@ class MCPClient:
             target_agent: Target agent ID
             message: Message dictionary
         """
-        message['target'] = target_agent
+        message["target"] = target_agent
         await self.broadcast(message)
 
     def close(self):
@@ -146,10 +144,7 @@ if __name__ == "__main__":
         client = MCPClient("test_agent_1")
 
         # Broadcast test message
-        await client.broadcast({
-            'type': 'test',
-            'data': 'Hello from agent 1'
-        })
+        await client.broadcast({"type": "test", "data": "Hello from agent 1"})
 
         # Receive messages
         messages = await client.receive_messages()

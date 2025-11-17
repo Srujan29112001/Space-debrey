@@ -3,12 +3,14 @@ Space Knowledge Graph
 Neo4j-based graph for satellites, debris, orbits, and conjunctions
 """
 
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 try:
     from neo4j import GraphDatabase
+
     NEO4J_AVAILABLE = True
 except ImportError:
     NEO4J_AVAILABLE = False
@@ -20,11 +22,13 @@ class SpaceKnowledgeGraph:
     Neo4j-based knowledge graph for space situational awareness
     """
 
-    def __init__(self,
-                 uri: str = "bolt://localhost:7687",
-                 user: str = "neo4j",
-                 password: str = "password",
-                 database: str = "space_catalog"):
+    def __init__(
+        self,
+        uri: str = "bolt://localhost:7687",
+        user: str = "neo4j",
+        password: str = "password",
+        database: str = "space_catalog",
+    ):
         """
         Initialize Space Knowledge Graph
 
@@ -66,23 +70,19 @@ class SpaceKnowledgeGraph:
             CREATE CONSTRAINT satellite_id IF NOT EXISTS
             FOR (s:Satellite) REQUIRE s.norad_id IS UNIQUE
             """,
-
             """
             CREATE CONSTRAINT debris_id IF NOT EXISTS
             FOR (d:Debris) REQUIRE d.object_id IS UNIQUE
             """,
-
             # Indices
             """
             CREATE INDEX satellite_name IF NOT EXISTS
             FOR (s:Satellite) ON (s.name)
             """,
-
             """
             CREATE INDEX orbit_altitude IF NOT EXISTS
             FOR (o:Orbit) ON (o.semi_major_axis)
             """,
-
             """
             CREATE INDEX conjunction_tca IF NOT EXISTS
             FOR (c:Conjunction) ON (c.tca)
@@ -125,17 +125,19 @@ class SpaceKnowledgeGraph:
         with self.driver.session(database=self.database) as session:
             result = session.run(
                 query,
-                norad_id=satellite_data['norad_id'],
-                name=satellite_data.get('name', ''),
-                intl_des=satellite_data.get('international_designator', ''),
-                operator=satellite_data.get('operator', ''),
-                launch_date=satellite_data.get('launch_date', datetime.now().isoformat()),
-                mass=satellite_data.get('mass', 0.0),
-                status=satellite_data.get('status', 'ACTIVE')
+                norad_id=satellite_data["norad_id"],
+                name=satellite_data.get("name", ""),
+                intl_des=satellite_data.get("international_designator", ""),
+                operator=satellite_data.get("operator", ""),
+                launch_date=satellite_data.get(
+                    "launch_date", datetime.now().isoformat()
+                ),
+                mass=satellite_data.get("mass", 0.0),
+                status=satellite_data.get("status", "ACTIVE"),
             )
 
             record = result.single()
-            return dict(record['s']) if record else {}
+            return dict(record["s"]) if record else {}
 
     def add_orbit(self, norad_id: int, orbit_data: Dict) -> Dict:
         """
@@ -170,17 +172,17 @@ class SpaceKnowledgeGraph:
             result = session.run(
                 query,
                 norad_id=norad_id,
-                a=orbit_data['semi_major_axis'],
-                e=orbit_data['eccentricity'],
-                i=orbit_data['inclination'],
-                omega=orbit_data['raan'],
-                w=orbit_data['arg_perigee'],
-                M=orbit_data['mean_anomaly'],
-                epoch=orbit_data.get('epoch', datetime.now().isoformat())
+                a=orbit_data["semi_major_axis"],
+                e=orbit_data["eccentricity"],
+                i=orbit_data["inclination"],
+                omega=orbit_data["raan"],
+                w=orbit_data["arg_perigee"],
+                M=orbit_data["mean_anomaly"],
+                epoch=orbit_data.get("epoch", datetime.now().isoformat()),
             )
 
             record = result.single()
-            return dict(record['o']) if record else {}
+            return dict(record["o"]) if record else {}
 
     def add_debris(self, debris_data: Dict) -> Dict:
         """
@@ -208,20 +210,19 @@ class SpaceKnowledgeGraph:
         with self.driver.session(database=self.database) as session:
             result = session.run(
                 query,
-                object_id=debris_data['object_id'],
-                size=debris_data.get('size_category', 'UNKNOWN'),
-                origin=debris_data.get('origin', ''),
-                date=debris_data.get('detection_date', datetime.now().isoformat()),
-                rcs=debris_data.get('rcs', 0.0)
+                object_id=debris_data["object_id"],
+                size=debris_data.get("size_category", "UNKNOWN"),
+                origin=debris_data.get("origin", ""),
+                date=debris_data.get("detection_date", datetime.now().isoformat()),
+                rcs=debris_data.get("rcs", 0.0),
             )
 
             record = result.single()
-            return dict(record['d']) if record else {}
+            return dict(record["d"]) if record else {}
 
-    def update_conjunction_assessment(self,
-                                     obj1_id: int,
-                                     obj2_id: str,
-                                     prediction: Dict) -> Dict:
+    def update_conjunction_assessment(
+        self, obj1_id: int, obj2_id: str, prediction: Dict
+    ) -> Dict:
         """
         Update conjunction assessment
 
@@ -272,21 +273,21 @@ class SpaceKnowledgeGraph:
                 query,
                 obj1=obj1_id,
                 obj2=obj2_id,
-                tca=prediction['tca'],
-                distance=prediction['miss_distance'],
-                probability=prediction['collision_probability'],
-                rel_vel=prediction.get('relative_velocity', 0.0),
-                radial=prediction.get('radial_separation', 0.0),
-                in_track=prediction.get('in_track_separation', 0.0),
-                cross_track=prediction.get('cross_track_separation', 0.0)
+                tca=prediction["tca"],
+                distance=prediction["miss_distance"],
+                probability=prediction["collision_probability"],
+                rel_vel=prediction.get("relative_velocity", 0.0),
+                radial=prediction.get("radial_separation", 0.0),
+                in_track=prediction.get("in_track_separation", 0.0),
+                cross_track=prediction.get("cross_track_separation", 0.0),
             )
 
             record = result.single()
-            return dict(record['c']) if record else {}
+            return dict(record["c"]) if record else {}
 
-    def get_historical_conjunctions(self,
-                                   satellite_id: int,
-                                   days_back: int = 30) -> List[Dict]:
+    def get_historical_conjunctions(
+        self, satellite_id: int, days_back: int = 30
+    ) -> List[Dict]:
         """
         Get historical conjunctions for satellite
 
@@ -314,20 +315,20 @@ class SpaceKnowledgeGraph:
         """
 
         with self.driver.session(database=self.database) as session:
-            result = session.run(
-                query,
-                sat_id=satellite_id,
-                days=days_back
-            )
+            result = session.run(query, sat_id=satellite_id, days=days_back)
 
             conjunctions = []
             for record in result:
-                conjunctions.append({
-                    'conjunction': dict(record['c']),
-                    'other_object': dict(record['other']) if record['other'] else None,
-                    'miss_distance': record['miss_distance'],
-                    'probability': record['probability']
-                })
+                conjunctions.append(
+                    {
+                        "conjunction": dict(record["c"]),
+                        "other_object": (
+                            dict(record["other"]) if record["other"] else None
+                        ),
+                        "miss_distance": record["miss_distance"],
+                        "probability": record["probability"],
+                    }
+                )
 
             return conjunctions
 
@@ -362,12 +363,14 @@ class SpaceKnowledgeGraph:
 
             satellites = []
             for record in result:
-                satellites.append({
-                    'satellite': dict(record['s']),
-                    'conjunction_count': record['conjunction_count'],
-                    'max_probability': record['max_probability'],
-                    'min_distance': record['min_distance']
-                })
+                satellites.append(
+                    {
+                        "satellite": dict(record["s"]),
+                        "conjunction_count": record["conjunction_count"],
+                        "max_probability": record["max_probability"],
+                        "min_distance": record["min_distance"],
+                    }
+                )
 
             return satellites
 
@@ -396,13 +399,13 @@ class SpaceKnowledgeGraph:
 
             debris_list = []
             for record in result:
-                debris_list.append(dict(record['d']))
+                debris_list.append(dict(record["d"]))
 
             return debris_list
 
-    def get_satellites_in_orbit_range(self,
-                                     altitude_min: float,
-                                     altitude_max: float) -> List[Dict]:
+    def get_satellites_in_orbit_range(
+        self, altitude_min: float, altitude_max: float
+    ) -> List[Dict]:
         """
         Get satellites in altitude range
 
@@ -433,10 +436,9 @@ class SpaceKnowledgeGraph:
 
             satellites = []
             for record in result:
-                satellites.append({
-                    'satellite': dict(record['s']),
-                    'orbit': dict(record['o'])
-                })
+                satellites.append(
+                    {"satellite": dict(record["s"]), "orbit": dict(record["o"])}
+                )
 
             return satellites
 
@@ -447,12 +449,12 @@ if __name__ == "__main__":
 
     # Add satellite
     satellite = {
-        'norad_id': 25544,
-        'name': 'ISS (ZARYA)',
-        'operator': 'ISS',
-        'launch_date': '1998-11-20',
-        'mass': 419700,
-        'status': 'ACTIVE'
+        "norad_id": 25544,
+        "name": "ISS (ZARYA)",
+        "operator": "ISS",
+        "launch_date": "1998-11-20",
+        "mass": 419700,
+        "status": "ACTIVE",
     }
 
     result = kg.add_satellite(satellite)
@@ -460,13 +462,13 @@ if __name__ == "__main__":
 
     # Add orbit
     orbit = {
-        'semi_major_axis': 6778.0,
-        'eccentricity': 0.0001,
-        'inclination': 51.6,
-        'raan': 0.0,
-        'arg_perigee': 0.0,
-        'mean_anomaly': 0.0,
-        'epoch': datetime.now().isoformat()
+        "semi_major_axis": 6778.0,
+        "eccentricity": 0.0001,
+        "inclination": 51.6,
+        "raan": 0.0,
+        "arg_perigee": 0.0,
+        "mean_anomaly": 0.0,
+        "epoch": datetime.now().isoformat(),
     }
 
     orbit_result = kg.add_orbit(25544, orbit)

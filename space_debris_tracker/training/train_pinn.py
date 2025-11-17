@@ -3,24 +3,25 @@ Physics-Informed Neural Network (PINN) Training
 Combines data loss with physics constraints for orbital mechanics
 """
 
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from pathlib import Path
-from typing import Dict, Optional, Tuple
-import numpy as np
 from tqdm import tqdm
-from datetime import datetime
 
 try:
     from torch.utils.tensorboard import SummaryWriter
 except ImportError:
     SummaryWriter = None
 
-from .dataset import OrbitDataset, create_dataloaders
-from ..trajectory_prediction.pinn.physics_informed_nn import PhysicsInformedNN
 from ..trajectory_prediction.physics.orbital_mechanics import OrbitalMechanics
+from ..trajectory_prediction.pinn.physics_informed_nn import PhysicsInformedNN
+from .dataset import OrbitDataset, create_dataloaders
 
 
 class AdaptiveLossWeighting(nn.Module):
@@ -61,8 +62,8 @@ class PINNTrainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         config: Dict,
-        device: str = 'cuda',
-        output_dir: str = 'outputs/pinn_training'
+        device: str = "cuda",
+        output_dir: str = "outputs/pinn_training",
     ):
         """
         Initialize PINN trainer
@@ -84,9 +85,9 @@ class PINNTrainer:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Training parameters
-        self.epochs = config.get('epochs', 200)
-        self.physics_loss_weight = config.get('physics_loss_weight', 0.1)
-        self.adaptive_weights = config.get('adaptive_weights', True)
+        self.epochs = config.get("epochs", 200)
+        self.physics_loss_weight = config.get("physics_loss_weight", 0.1)
+        self.adaptive_weights = config.get("adaptive_weights", True)
 
         # Optimizer
         self.optimizer = self._build_optimizer()
@@ -98,8 +99,7 @@ class PINNTrainer:
         if self.adaptive_weights:
             self.loss_weighting = AdaptiveLossWeighting(num_tasks=2).to(device)
             self.weight_optimizer = optim.Adam(
-                self.loss_weighting.parameters(),
-                lr=0.001
+                self.loss_weighting.parameters(), lr=0.001
             )
         else:
             self.loss_weighting = None
@@ -109,12 +109,12 @@ class PINNTrainer:
 
         # Tensorboard
         if SummaryWriter is not None:
-            self.writer = SummaryWriter(log_dir=str(self.output_dir / 'logs'))
+            self.writer = SummaryWriter(log_dir=str(self.output_dir / "logs"))
         else:
             self.writer = None
 
         # Best metrics
-        self.best_val_loss = float('inf')
+        self.best_val_loss = float("inf")
 
         print(f"PINNTrainer initialized")
         print(f"  Epochs: {self.epochs}")
@@ -123,34 +123,27 @@ class PINNTrainer:
 
     def _build_optimizer(self) -> optim.Optimizer:
         """Build optimizer"""
-        lr = self.config.get('lr', 1e-4)
-        weight_decay = self.config.get('weight_decay', 1e-5)
+        lr = self.config.get("lr", 1e-4)
+        weight_decay = self.config.get("weight_decay", 1e-5)
 
         return optim.AdamW(
             self.model.parameters(),
             lr=lr,
             weight_decay=weight_decay,
-            betas=(0.9, 0.999)
+            betas=(0.9, 0.999),
         )
 
     def _build_scheduler(self):
         """Build learning rate scheduler"""
-        scheduler_type = self.config.get('scheduler', 'cosine')
+        scheduler_type = self.config.get("scheduler", "cosine")
 
-        if scheduler_type == 'cosine':
+        if scheduler_type == "cosine":
             return optim.lr_scheduler.CosineAnnealingWarmRestarts(
-                self.optimizer,
-                T_0=10,
-                T_mult=2,
-                eta_min=1e-6
+                self.optimizer, T_0=10, T_mult=2, eta_min=1e-6
             )
-        elif scheduler_type == 'plateau':
+        elif scheduler_type == "plateau":
             return optim.lr_scheduler.ReduceLROnPlateau(
-                self.optimizer,
-                mode='min',
-                factor=0.5,
-                patience=10,
-                verbose=True
+                self.optimizer, mode="min", factor=0.5, patience=10, verbose=True
             )
         else:
             return None
@@ -168,18 +161,18 @@ class PINNTrainer:
         self.model.train()
 
         metrics = {
-            'data_loss': 0.0,
-            'physics_loss': 0.0,
-            'total_loss': 0.0,
-            'energy_conservation': 0.0,
-            'momentum_conservation': 0.0
+            "data_loss": 0.0,
+            "physics_loss": 0.0,
+            "total_loss": 0.0,
+            "energy_conservation": 0.0,
+            "momentum_conservation": 0.0,
         }
 
         pbar = tqdm(self.train_loader, desc=f"Epoch {epoch}/{self.epochs}")
 
         for batch in pbar:
-            input_seq = batch['input'].to(self.device)  # [B, T, 6]
-            target_seq = batch['target'].to(self.device)  # [B, T', 6]
+            input_seq = batch["input"].to(self.device)  # [B, T, 6]
+            target_seq = batch["target"].to(self.device)  # [B, T', 6]
 
             batch_size, seq_len, _ = input_seq.shape
 
@@ -215,9 +208,7 @@ class PINNTrainer:
 
                 # Physics loss from model
                 phys_loss = self.model.compute_physics_loss(
-                    next_pred,
-                    curr_pred,
-                    dt=60.0  # 60 seconds
+                    next_pred, curr_pred, dt=60.0  # 60 seconds
                 )
                 physics_loss += phys_loss
 
@@ -226,7 +217,7 @@ class PINNTrainer:
                     curr_pred[:, :3],
                     curr_pred[:, 3:],
                     next_pred[:, :3],
-                    next_pred[:, 3:]
+                    next_pred[:, 3:],
                 )
                 energy_violation += energy_loss
 
@@ -235,13 +226,13 @@ class PINNTrainer:
                     curr_pred[:, :3],
                     curr_pred[:, 3:],
                     next_pred[:, :3],
-                    next_pred[:, 3:]
+                    next_pred[:, 3:],
                 )
                 momentum_violation += momentum_loss
 
-            physics_loss /= (target_seq.shape[1] - 1)
-            energy_violation /= (target_seq.shape[1] - 1)
-            momentum_violation /= (target_seq.shape[1] - 1)
+            physics_loss /= target_seq.shape[1] - 1
+            energy_violation /= target_seq.shape[1] - 1
+            momentum_violation /= target_seq.shape[1] - 1
 
             # Total loss
             if self.adaptive_weights:
@@ -267,18 +258,20 @@ class PINNTrainer:
             self.optimizer.step()
 
             # Update metrics
-            metrics['data_loss'] += data_loss.item()
-            metrics['physics_loss'] += physics_loss.item()
-            metrics['total_loss'] += total_loss.item()
-            metrics['energy_conservation'] += energy_violation.item()
-            metrics['momentum_conservation'] += momentum_violation.item()
+            metrics["data_loss"] += data_loss.item()
+            metrics["physics_loss"] += physics_loss.item()
+            metrics["total_loss"] += total_loss.item()
+            metrics["energy_conservation"] += energy_violation.item()
+            metrics["momentum_conservation"] += momentum_violation.item()
 
             # Update progress bar
-            pbar.set_postfix({
-                'data': f"{data_loss.item():.4f}",
-                'phys': f"{physics_loss.item():.4f}",
-                'total': f"{total_loss.item():.4f}"
-            })
+            pbar.set_postfix(
+                {
+                    "data": f"{data_loss.item():.4f}",
+                    "phys": f"{physics_loss.item():.4f}",
+                    "total": f"{total_loss.item():.4f}",
+                }
+            )
 
         # Average metrics
         n_batches = len(self.train_loader)
@@ -300,17 +293,17 @@ class PINNTrainer:
         self.model.eval()
 
         metrics = {
-            'data_loss': 0.0,
-            'physics_loss': 0.0,
-            'total_loss': 0.0,
-            'position_rmse': 0.0,
-            'velocity_rmse': 0.0
+            "data_loss": 0.0,
+            "physics_loss": 0.0,
+            "total_loss": 0.0,
+            "position_rmse": 0.0,
+            "velocity_rmse": 0.0,
         }
 
         with torch.no_grad():
             for batch in tqdm(self.val_loader, desc="Validation"):
-                input_seq = batch['input'].to(self.device)
-                target_seq = batch['target'].to(self.device)
+                input_seq = batch["input"].to(self.device)
+                target_seq = batch["target"].to(self.device)
 
                 batch_size, seq_len, _ = input_seq.shape
 
@@ -341,31 +334,25 @@ class PINNTrainer:
                     )
                     physics_loss += phys_loss
 
-                physics_loss /= (target_seq.shape[1] - 1)
+                physics_loss /= target_seq.shape[1] - 1
 
                 # Total loss
                 total_loss = data_loss + self.physics_loss_weight * physics_loss
 
                 # RMSE metrics
                 position_rmse = torch.sqrt(
-                    nn.functional.mse_loss(
-                        predictions[:, :, :3],
-                        target_seq[:, :, :3]
-                    )
+                    nn.functional.mse_loss(predictions[:, :, :3], target_seq[:, :, :3])
                 )
                 velocity_rmse = torch.sqrt(
-                    nn.functional.mse_loss(
-                        predictions[:, :, 3:],
-                        target_seq[:, :, 3:]
-                    )
+                    nn.functional.mse_loss(predictions[:, :, 3:], target_seq[:, :, 3:])
                 )
 
                 # Update metrics
-                metrics['data_loss'] += data_loss.item()
-                metrics['physics_loss'] += physics_loss.item()
-                metrics['total_loss'] += total_loss.item()
-                metrics['position_rmse'] += position_rmse.item()
-                metrics['velocity_rmse'] += velocity_rmse.item()
+                metrics["data_loss"] += data_loss.item()
+                metrics["physics_loss"] += physics_loss.item()
+                metrics["total_loss"] += total_loss.item()
+                metrics["position_rmse"] += position_rmse.item()
+                metrics["velocity_rmse"] += velocity_rmse.item()
 
         # Average metrics
         n_batches = len(self.val_loader)
@@ -388,7 +375,7 @@ class PINNTrainer:
             # Update scheduler
             if self.scheduler is not None:
                 if isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                    self.scheduler.step(val_metrics['total_loss'])
+                    self.scheduler.step(val_metrics["total_loss"])
                 else:
                     self.scheduler.step()
 
@@ -403,27 +390,29 @@ class PINNTrainer:
 
             if self.adaptive_weights:
                 weights = torch.exp(-self.loss_weighting.log_vars).detach().cpu()
-                print(f"  Adaptive weights: Data={weights[0]:.4f}, Physics={weights[1]:.4f}")
+                print(
+                    f"  Adaptive weights: Data={weights[0]:.4f}, Physics={weights[1]:.4f}"
+                )
 
             if self.writer is not None:
                 for key, value in train_metrics.items():
-                    self.writer.add_scalar(f'train/{key}', value, epoch)
+                    self.writer.add_scalar(f"train/{key}", value, epoch)
                 for key, value in val_metrics.items():
-                    self.writer.add_scalar(f'val/{key}', value, epoch)
+                    self.writer.add_scalar(f"val/{key}", value, epoch)
                 self.writer.add_scalar(
-                    'lr',
-                    self.optimizer.param_groups[0]['lr'],
-                    epoch
+                    "lr", self.optimizer.param_groups[0]["lr"], epoch
                 )
 
                 if self.adaptive_weights:
                     weights = torch.exp(-self.loss_weighting.log_vars).detach()
-                    self.writer.add_scalar('adaptive_weights/data', weights[0], epoch)
-                    self.writer.add_scalar('adaptive_weights/physics', weights[1], epoch)
+                    self.writer.add_scalar("adaptive_weights/data", weights[0], epoch)
+                    self.writer.add_scalar(
+                        "adaptive_weights/physics", weights[1], epoch
+                    )
 
             # Save checkpoint
-            if val_metrics['total_loss'] < self.best_val_loss:
-                self.best_val_loss = val_metrics['total_loss']
+            if val_metrics["total_loss"] < self.best_val_loss:
+                self.best_val_loss = val_metrics["total_loss"]
                 self.save_checkpoint(epoch, is_best=True)
                 print(f"  New best model saved!")
 
@@ -439,21 +428,23 @@ class PINNTrainer:
     def save_checkpoint(self, epoch: int, is_best: bool = False):
         """Save checkpoint"""
         checkpoint = {
-            'epoch': epoch,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict() if self.scheduler else None,
-            'best_val_loss': self.best_val_loss,
-            'config': self.config
+            "epoch": epoch,
+            "model_state_dict": self.model.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "scheduler_state_dict": (
+                self.scheduler.state_dict() if self.scheduler else None
+            ),
+            "best_val_loss": self.best_val_loss,
+            "config": self.config,
         }
 
         if self.adaptive_weights:
-            checkpoint['loss_weighting_state_dict'] = self.loss_weighting.state_dict()
+            checkpoint["loss_weighting_state_dict"] = self.loss_weighting.state_dict()
 
         if is_best:
-            path = self.output_dir / 'best.pt'
+            path = self.output_dir / "best.pt"
         else:
-            path = self.output_dir / f'checkpoint_epoch_{epoch}.pt'
+            path = self.output_dir / f"checkpoint_epoch_{epoch}.pt"
 
         torch.save(checkpoint, path)
         print(f"Checkpoint saved to {path}")
@@ -462,20 +453,20 @@ class PINNTrainer:
 if __name__ == "__main__":
     # Example training configuration
     config = {
-        'epochs': 200,
-        'batch_size': 64,
-        'lr': 1e-4,
-        'weight_decay': 1e-5,
-        'physics_loss_weight': 0.1,
-        'adaptive_weights': True,
-        'scheduler': 'cosine'
+        "epochs": 200,
+        "batch_size": 64,
+        "lr": 1e-4,
+        "weight_decay": 1e-5,
+        "physics_loss_weight": 0.1,
+        "adaptive_weights": True,
+        "scheduler": "cosine",
     }
 
     print("PINN Training Script")
     print("=" * 50)
 
     # Check CUDA
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
     # Create model
@@ -484,7 +475,7 @@ if __name__ == "__main__":
         input_dim=7,
         hidden_dims=[256, 512, 512, 256],
         output_dim=6,
-        physics_loss_weight=config['physics_loss_weight']
+        physics_loss_weight=config["physics_loss_weight"],
     )
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
 
@@ -492,12 +483,12 @@ if __name__ == "__main__":
     print("\nCreating dataloaders...")
     try:
         train_loader, val_loader, test_loader = create_dataloaders(
-            dataset_type='orbit',
-            data_path='data/orbits.h5',
-            batch_size=config['batch_size'],
+            dataset_type="orbit",
+            data_path="data/orbits.h5",
+            batch_size=config["batch_size"],
             num_workers=4,
             sequence_length=100,
-            prediction_horizon=50
+            prediction_horizon=50,
         )
         print(f"Train batches: {len(train_loader)}")
         print(f"Val batches: {len(val_loader)}")
@@ -507,26 +498,21 @@ if __name__ == "__main__":
 
         # Create dataset with synthetic data
         dataset = OrbitDataset(
-            data_path=Path('/tmp/dummy_orbits.h5'),
+            data_path=Path("/tmp/dummy_orbits.h5"),
             sequence_length=100,
-            prediction_horizon=50
+            prediction_horizon=50,
         )
         from torch.utils.data import random_split
+
         train_size = int(0.8 * len(dataset))
         val_size = len(dataset) - train_size
         train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
         train_loader = DataLoader(
-            train_dataset,
-            batch_size=config['batch_size'],
-            shuffle=True,
-            num_workers=0
+            train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0
         )
         val_loader = DataLoader(
-            val_dataset,
-            batch_size=config['batch_size'],
-            shuffle=False,
-            num_workers=0
+            val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0
         )
 
     # Create trainer
@@ -537,7 +523,7 @@ if __name__ == "__main__":
         val_loader=val_loader,
         config=config,
         device=device,
-        output_dir='outputs/pinn_training'
+        output_dir="outputs/pinn_training",
     )
 
     # Start training

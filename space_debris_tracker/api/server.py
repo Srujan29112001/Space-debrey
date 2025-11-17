@@ -3,25 +3,26 @@ Main FastAPI Server
 Provides REST, GraphQL, and WebSocket endpoints
 """
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from typing import List, Dict, Optional
-from datetime import datetime
 import asyncio
 import json
+from datetime import datetime
+from typing import Dict, List, Optional
 
-from .rest import router as rest_router
-from .graphql_api import graphql_app
-from .websocket import ConnectionManager
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 # Import main components
 from space_debris_tracker import (
-    SpaceDebrisDetector,
     OrbitPredictionEngine,
+    SpaceDebrisDetector,
     SpaceKnowledgeGraph,
-    SpaceMonitoringAgent
+    SpaceMonitoringAgent,
 )
+
+from .graphql_api import graphql_app
+from .rest import router as rest_router
+from .websocket import ConnectionManager
 
 
 def create_app() -> FastAPI:
@@ -36,7 +37,7 @@ def create_app() -> FastAPI:
         description="AI-Powered Space Debris Tracking & Collision Prediction System",
         version="1.0.0",
         docs_url="/api/docs",
-        redoc_url="/api/redoc"
+        redoc_url="/api/redoc",
     )
 
     # CORS middleware
@@ -109,8 +110,8 @@ def create_app() -> FastAPI:
                 "docs": "/api/docs",
                 "rest": "/api/v1",
                 "graphql": "/graphql",
-                "websocket": "/ws/tracking"
-            }
+                "websocket": "/ws/tracking",
+            },
         }
 
     @app.get("/health")
@@ -122,8 +123,8 @@ def create_app() -> FastAPI:
             "components": {
                 "detector": app.state.detector is not None,
                 "predictor": app.state.predictor is not None,
-                "knowledge_graph": app.state.knowledge_graph is not None
-            }
+                "knowledge_graph": app.state.knowledge_graph is not None,
+            },
         }
 
     @app.websocket("/ws/tracking")
@@ -138,8 +139,8 @@ def create_app() -> FastAPI:
         try:
             # Receive subscription info
             data = await websocket.receive_json()
-            satellite_ids = data.get('satellites', [])
-            update_rate = data.get('update_rate', 1.0)  # Hz
+            satellite_ids = data.get("satellites", [])
+            update_rate = data.get("update_rate", 1.0)  # Hz
 
             # Send updates
             while True:
@@ -150,11 +151,11 @@ def create_app() -> FastAPI:
                     try:
                         # Get satellite state (placeholder)
                         state = {
-                            'satellite_id': sat_id,
-                            'timestamp': datetime.utcnow().isoformat(),
-                            'position': [6778.0, 0.0, 0.0],
-                            'velocity': [0.0, 7.66, 0.0],
-                            'risk_level': 'LOW'
+                            "satellite_id": sat_id,
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "position": [6778.0, 0.0, 0.0],
+                            "velocity": [0.0, 7.66, 0.0],
+                            "risk_level": "LOW",
                         }
                         updates.append(state)
                     except Exception as e:
@@ -162,11 +163,7 @@ def create_app() -> FastAPI:
 
                 # Send updates
                 await manager.send_json(
-                    {
-                        'type': 'position_update',
-                        'data': updates
-                    },
-                    websocket
+                    {"type": "position_update", "data": updates}, websocket
                 )
 
                 # Wait based on update rate
@@ -194,5 +191,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         reload=True,
-        log_level="info"
+        log_level="info",
     )

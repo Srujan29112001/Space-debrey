@@ -2,15 +2,15 @@
 API Key Management for External Integrations
 """
 
-import secrets
 import hashlib
 import hmac
-from typing import Optional, Dict
-from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
-import logging
 import json
+import logging
+import secrets
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class APIKey:
     """API Key data structure"""
+
     key_id: str
     key_hash: str
     name: str
@@ -42,11 +43,13 @@ class APIKeyManager:
         self.api_keys: Dict[str, APIKey] = {}
         self._load_keys()
 
-    def generate_api_key(self,
-                        name: str,
-                        permissions: list[str],
-                        rate_limit: int = 100,
-                        expires_in_days: Optional[int] = None) -> tuple[str, str]:
+    def generate_api_key(
+        self,
+        name: str,
+        permissions: list[str],
+        rate_limit: int = 100,
+        expires_in_days: Optional[int] = None,
+    ) -> tuple[str, str]:
         """
         Generate new API key
 
@@ -82,7 +85,7 @@ class APIKeyManager:
             expires_at=expires_at,
             permissions=permissions,
             rate_limit=rate_limit,
-            is_active=True
+            is_active=True,
         )
 
         # Store
@@ -153,7 +156,7 @@ class APIKeyManager:
         keys = []
         for key_obj in self.api_keys.values():
             key_dict = asdict(key_obj)
-            del key_dict['key_hash']  # Don't expose hash
+            del key_dict["key_hash"]  # Don't expose hash
             keys.append(key_dict)
 
         return keys
@@ -167,13 +170,15 @@ class APIKeyManager:
         data = {
             key_id: {
                 **asdict(key_obj),
-                'created_at': key_obj.created_at.isoformat(),
-                'expires_at': key_obj.expires_at.isoformat() if key_obj.expires_at else None
+                "created_at": key_obj.created_at.isoformat(),
+                "expires_at": (
+                    key_obj.expires_at.isoformat() if key_obj.expires_at else None
+                ),
             }
             for key_id, key_obj in self.api_keys.items()
         }
 
-        with open(self.storage_path, 'w') as f:
+        with open(self.storage_path, "w") as f:
             json.dump(data, f, indent=2)
 
     def _load_keys(self):
@@ -182,13 +187,16 @@ class APIKeyManager:
             return
 
         try:
-            with open(self.storage_path, 'r') as f:
+            with open(self.storage_path, "r") as f:
                 data = json.load(f)
 
             for key_id, key_data in data.items():
-                key_data['created_at'] = datetime.fromisoformat(key_data['created_at'])
-                key_data['expires_at'] = (datetime.fromisoformat(key_data['expires_at'])
-                                         if key_data['expires_at'] else None)
+                key_data["created_at"] = datetime.fromisoformat(key_data["created_at"])
+                key_data["expires_at"] = (
+                    datetime.fromisoformat(key_data["expires_at"])
+                    if key_data["expires_at"]
+                    else None
+                )
 
                 self.api_keys[key_id] = APIKey(**key_data)
 
@@ -233,7 +241,7 @@ if __name__ == "__main__":
         name="Test Integration",
         permissions=["read:tle", "read:detections"],
         rate_limit=1000,
-        expires_in_days=365
+        expires_in_days=365,
     )
 
     print(f"Generated API Key:")

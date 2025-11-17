@@ -2,12 +2,13 @@
 JWT Token Handler for Authentication
 """
 
-import jwt
+import logging
 import os
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Optional
-from dataclasses import dataclass
-import logging
+
+import jwt
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TokenPayload:
     """JWT token payload"""
+
     user_id: str
     username: str
     roles: list[str]
@@ -25,10 +27,12 @@ class TokenPayload:
 class JWTHandler:
     """Handle JWT token creation and validation"""
 
-    def __init__(self,
-                 secret_key: Optional[str] = None,
-                 algorithm: str = 'HS256',
-                 access_token_expire_minutes: int = 30):
+    def __init__(
+        self,
+        secret_key: Optional[str] = None,
+        algorithm: str = "HS256",
+        access_token_expire_minutes: int = 30,
+    ):
         """
         Initialize JWT handler
 
@@ -37,15 +41,19 @@ class JWTHandler:
             algorithm: JWT algorithm
             access_token_expire_minutes: Token expiration time
         """
-        self.secret_key = secret_key or os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-me')
+        self.secret_key = secret_key or os.getenv(
+            "JWT_SECRET_KEY", "your-secret-key-change-me"
+        )
         self.algorithm = algorithm
         self.access_token_expire_minutes = access_token_expire_minutes
 
-    def create_access_token(self,
-                           user_id: str,
-                           username: str,
-                           roles: list[str],
-                           expires_delta: Optional[timedelta] = None) -> str:
+    def create_access_token(
+        self,
+        user_id: str,
+        username: str,
+        roles: list[str],
+        expires_delta: Optional[timedelta] = None,
+    ) -> str:
         """
         Create JWT access token
 
@@ -61,14 +69,16 @@ class JWTHandler:
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
+            expire = datetime.utcnow() + timedelta(
+                minutes=self.access_token_expire_minutes
+            )
 
         payload = {
-            'user_id': user_id,
-            'username': username,
-            'roles': roles,
-            'exp': expire,
-            'iat': datetime.utcnow()
+            "user_id": user_id,
+            "username": username,
+            "roles": roles,
+            "exp": expire,
+            "iat": datetime.utcnow(),
         }
 
         encoded_jwt = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
@@ -90,11 +100,11 @@ class JWTHandler:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
 
             token_payload = TokenPayload(
-                user_id=payload['user_id'],
-                username=payload['username'],
-                roles=payload['roles'],
-                exp=datetime.fromtimestamp(payload['exp']),
-                iat=datetime.fromtimestamp(payload['iat'])
+                user_id=payload["user_id"],
+                username=payload["username"],
+                roles=payload["roles"],
+                exp=datetime.fromtimestamp(payload["exp"]),
+                iat=datetime.fromtimestamp(payload["iat"]),
             )
 
             return token_payload

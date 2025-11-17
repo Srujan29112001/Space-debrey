@@ -3,11 +3,12 @@ Data Validation and Normalization
 Validates and normalizes incoming space debris data
 """
 
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ValidationResult:
     """Result of data validation"""
+
     is_valid: bool
     errors: List[str]
     warnings: List[str]
@@ -38,42 +40,38 @@ class DataValidator:
         """Default validation configuration"""
         return {
             # Orbital element ranges
-            'semi_major_axis_min': 6400,  # km (LEO minimum)
-            'semi_major_axis_max': 42164,  # km (GEO)
-            'eccentricity_min': 0.0,
-            'eccentricity_max': 0.99,  # Highly elliptical orbits
-            'inclination_min': 0.0,
-            'inclination_max': 180.0,  # degrees
-            'raan_min': 0.0,
-            'raan_max': 360.0,  # degrees
-            'arg_perigee_min': 0.0,
-            'arg_perigee_max': 360.0,  # degrees
-            'mean_anomaly_min': 0.0,
-            'mean_anomaly_max': 360.0,  # degrees
-
+            "semi_major_axis_min": 6400,  # km (LEO minimum)
+            "semi_major_axis_max": 42164,  # km (GEO)
+            "eccentricity_min": 0.0,
+            "eccentricity_max": 0.99,  # Highly elliptical orbits
+            "inclination_min": 0.0,
+            "inclination_max": 180.0,  # degrees
+            "raan_min": 0.0,
+            "raan_max": 360.0,  # degrees
+            "arg_perigee_min": 0.0,
+            "arg_perigee_max": 360.0,  # degrees
+            "mean_anomaly_min": 0.0,
+            "mean_anomaly_max": 360.0,  # degrees
             # State vector ranges
-            'position_min': 6400,  # km
-            'position_max': 50000,  # km
-            'velocity_min': 0.5,  # km/s
-            'velocity_max': 15.0,  # km/s (escape velocity ~11.2)
-
+            "position_min": 6400,  # km
+            "position_max": 50000,  # km
+            "velocity_min": 0.5,  # km/s
+            "velocity_max": 15.0,  # km/s (escape velocity ~11.2)
             # Image validation
-            'image_min_size': (100, 100),
-            'image_max_size': (10000, 10000),
-            'image_bit_depth': [8, 12, 14, 16],
-
+            "image_min_size": (100, 100),
+            "image_max_size": (10000, 10000),
+            "image_bit_depth": [8, 12, 14, 16],
             # Radar validation
-            'range_min': 100,  # km
-            'range_max': 10000,  # km
-            'range_rate_min': -15,  # km/s
-            'range_rate_max': 15,  # km/s
-            'rcs_min': 0.001,  # m^2
-            'rcs_max': 1000,  # m^2
-            'snr_min': 3,  # dB
-            'snr_max': 100,  # dB
-
+            "range_min": 100,  # km
+            "range_max": 10000,  # km
+            "range_rate_min": -15,  # km/s
+            "range_rate_max": 15,  # km/s
+            "rcs_min": 0.001,  # m^2
+            "rcs_max": 1000,  # m^2
+            "snr_min": 3,  # dB
+            "snr_max": 100,  # dB
             # Time validation
-            'max_age_hours': 24,  # Maximum data age
+            "max_age_hours": 24,  # Maximum data age
         }
 
     def validate_orbital_elements(self, elements: Dict) -> ValidationResult:
@@ -90,8 +88,14 @@ class DataValidator:
         warnings = []
 
         # Check required fields
-        required_fields = ['semi_major_axis', 'eccentricity', 'inclination',
-                          'raan', 'arg_perigee', 'mean_anomaly']
+        required_fields = [
+            "semi_major_axis",
+            "eccentricity",
+            "inclination",
+            "raan",
+            "arg_perigee",
+            "mean_anomaly",
+        ]
 
         for field in required_fields:
             if field not in elements:
@@ -101,47 +105,62 @@ class DataValidator:
             return ValidationResult(is_valid=False, errors=errors, warnings=warnings)
 
         # Validate ranges
-        if not (self.config['semi_major_axis_min'] <=
-                elements['semi_major_axis'] <=
-                self.config['semi_major_axis_max']):
-            errors.append(f"Semi-major axis out of range: {elements['semi_major_axis']:.1f} km")
+        if not (
+            self.config["semi_major_axis_min"]
+            <= elements["semi_major_axis"]
+            <= self.config["semi_major_axis_max"]
+        ):
+            errors.append(
+                f"Semi-major axis out of range: {elements['semi_major_axis']:.1f} km"
+            )
 
-        if not (self.config['eccentricity_min'] <=
-                elements['eccentricity'] <=
-                self.config['eccentricity_max']):
+        if not (
+            self.config["eccentricity_min"]
+            <= elements["eccentricity"]
+            <= self.config["eccentricity_max"]
+        ):
             errors.append(f"Eccentricity out of range: {elements['eccentricity']:.4f}")
 
-        if not (self.config['inclination_min'] <=
-                elements['inclination'] <=
-                self.config['inclination_max']):
+        if not (
+            self.config["inclination_min"]
+            <= elements["inclination"]
+            <= self.config["inclination_max"]
+        ):
             errors.append(f"Inclination out of range: {elements['inclination']:.2f}°")
 
         # Normalize angles to [0, 360)
         normalized = elements.copy()
-        for angle_field in ['raan', 'arg_perigee', 'mean_anomaly']:
+        for angle_field in ["raan", "arg_perigee", "mean_anomaly"]:
             normalized[angle_field] = elements[angle_field] % 360.0
 
         # Check for physically impossible orbits
         # Perigee must be above Earth surface
         Re = 6378.137  # Earth radius km
-        a = elements['semi_major_axis']
-        e = elements['eccentricity']
+        a = elements["semi_major_axis"]
+        e = elements["eccentricity"]
         perigee = a * (1 - e) - Re
 
         if perigee < -100:  # Allow some margin for decay
             errors.append(f"Perigee below Earth surface: {perigee:.1f} km")
         elif perigee < 100:
-            warnings.append(f"Very low perigee (rapid decay expected): {perigee:.1f} km")
+            warnings.append(
+                f"Very low perigee (rapid decay expected): {perigee:.1f} km"
+            )
 
         # Check epoch if provided
-        if 'epoch' in elements:
+        if "epoch" in elements:
             try:
-                epoch = datetime.fromisoformat(elements['epoch']) \
-                        if isinstance(elements['epoch'], str) else elements['epoch']
+                epoch = (
+                    datetime.fromisoformat(elements["epoch"])
+                    if isinstance(elements["epoch"], str)
+                    else elements["epoch"]
+                )
 
                 age = datetime.utcnow() - epoch
-                if age.total_seconds() / 3600 > self.config['max_age_hours']:
-                    warnings.append(f"Old orbital elements: {age.total_seconds()/3600:.1f} hours old")
+                if age.total_seconds() / 3600 > self.config["max_age_hours"]:
+                    warnings.append(
+                        f"Old orbital elements: {age.total_seconds()/3600:.1f} hours old"
+                    )
             except Exception as e:
                 errors.append(f"Invalid epoch format: {e}")
 
@@ -151,7 +170,7 @@ class DataValidator:
             is_valid=is_valid,
             errors=errors,
             warnings=warnings,
-            normalized_data=normalized if is_valid else None
+            normalized_data=normalized if is_valid else None,
         )
 
     def validate_state_vector(self, state: Dict) -> ValidationResult:
@@ -168,12 +187,12 @@ class DataValidator:
         warnings = []
 
         # Check required fields
-        if 'position' not in state or 'velocity' not in state:
+        if "position" not in state or "velocity" not in state:
             errors.append("Missing position or velocity")
             return ValidationResult(is_valid=False, errors=errors, warnings=warnings)
 
-        position = np.array(state['position'])
-        velocity = np.array(state['velocity'])
+        position = np.array(state["position"])
+        velocity = np.array(state["velocity"])
 
         # Validate dimensions
         if position.shape != (3,):
@@ -188,15 +207,19 @@ class DataValidator:
         pos_magnitude = np.linalg.norm(position)
         vel_magnitude = np.linalg.norm(velocity)
 
-        if not (self.config['position_min'] <= pos_magnitude <= self.config['position_max']):
+        if not (
+            self.config["position_min"] <= pos_magnitude <= self.config["position_max"]
+        ):
             errors.append(f"Position magnitude out of range: {pos_magnitude:.1f} km")
 
-        if not (self.config['velocity_min'] <= vel_magnitude <= self.config['velocity_max']):
+        if not (
+            self.config["velocity_min"] <= vel_magnitude <= self.config["velocity_max"]
+        ):
             errors.append(f"Velocity magnitude out of range: {vel_magnitude:.3f} km/s")
 
         # Check if orbit is bound (negative total energy)
         mu = 398600.4418  # Earth gravitational parameter km^3/s^2
-        kinetic_energy = 0.5 * vel_magnitude ** 2
+        kinetic_energy = 0.5 * vel_magnitude**2
         potential_energy = -mu / pos_magnitude
         total_energy = kinetic_energy + potential_energy
 
@@ -210,7 +233,9 @@ class DataValidator:
         if altitude < 100:
             errors.append(f"Object below atmosphere boundary: {altitude:.1f} km")
         elif altitude < 200:
-            warnings.append(f"Object in upper atmosphere (rapid decay): {altitude:.1f} km")
+            warnings.append(
+                f"Object in upper atmosphere (rapid decay): {altitude:.1f} km"
+            )
 
         is_valid = len(errors) == 0
 
@@ -218,7 +243,7 @@ class DataValidator:
             is_valid=is_valid,
             errors=errors,
             warnings=warnings,
-            normalized_data=state if is_valid else None
+            normalized_data=state if is_valid else None,
         )
 
     def validate_telescope_image(self, image_data: Dict) -> ValidationResult:
@@ -235,7 +260,7 @@ class DataValidator:
         warnings = []
 
         # Check required fields
-        required_fields = ['image_array', 'timestamp', 'ra', 'dec']
+        required_fields = ["image_array", "timestamp", "ra", "dec"]
         for field in required_fields:
             if field not in image_data:
                 errors.append(f"Missing required field: {field}")
@@ -243,7 +268,7 @@ class DataValidator:
         if errors:
             return ValidationResult(is_valid=False, errors=errors, warnings=warnings)
 
-        image = image_data['image_array']
+        image = image_data["image_array"]
 
         # Validate image dimensions
         if image.ndim not in [2, 3]:
@@ -252,8 +277,8 @@ class DataValidator:
 
         height, width = image.shape[:2]
 
-        min_h, min_w = self.config['image_min_size']
-        max_h, max_w = self.config['image_max_size']
+        min_h, min_w = self.config["image_min_size"]
+        max_h, max_w = self.config["image_max_size"]
 
         if not (min_h <= height <= max_h):
             errors.append(f"Image height out of range: {height}")
@@ -269,12 +294,12 @@ class DataValidator:
             warnings.append(f"Unusual image dtype: {image.dtype}")
             bit_depth = 0
 
-        if bit_depth not in self.config['image_bit_depth']:
+        if bit_depth not in self.config["image_bit_depth"]:
             warnings.append(f"Non-standard bit depth: {bit_depth}")
 
         # Validate celestial coordinates
-        ra = image_data['ra']
-        dec = image_data['dec']
+        ra = image_data["ra"]
+        dec = image_data["dec"]
 
         if not (0 <= ra < 360):
             errors.append(f"Right Ascension out of range [0, 360): {ra}°")
@@ -283,12 +308,14 @@ class DataValidator:
 
         # Validate timestamp
         try:
-            timestamp = datetime.fromisoformat(image_data['timestamp']) \
-                       if isinstance(image_data['timestamp'], str) \
-                       else image_data['timestamp']
+            timestamp = (
+                datetime.fromisoformat(image_data["timestamp"])
+                if isinstance(image_data["timestamp"], str)
+                else image_data["timestamp"]
+            )
 
             age = datetime.utcnow() - timestamp
-            if age.total_seconds() > 3600 * self.config['max_age_hours']:
+            if age.total_seconds() > 3600 * self.config["max_age_hours"]:
                 warnings.append(f"Old image: {age.total_seconds()/3600:.1f} hours old")
         except Exception as e:
             errors.append(f"Invalid timestamp: {e}")
@@ -317,7 +344,7 @@ class DataValidator:
             is_valid=is_valid,
             errors=errors,
             warnings=warnings,
-            normalized_data=image_data if is_valid else None
+            normalized_data=image_data if is_valid else None,
         )
 
     def validate_radar_return(self, radar_data: Dict) -> ValidationResult:
@@ -334,7 +361,7 @@ class DataValidator:
         warnings = []
 
         # Check required fields
-        required_fields = ['timestamp', 'range', 'range_rate', 'azimuth', 'elevation']
+        required_fields = ["timestamp", "range", "range_rate", "azimuth", "elevation"]
         for field in required_fields:
             if field not in radar_data:
                 errors.append(f"Missing required field: {field}")
@@ -343,48 +370,54 @@ class DataValidator:
             return ValidationResult(is_valid=False, errors=errors, warnings=warnings)
 
         # Validate range
-        range_val = radar_data['range']
-        if not (self.config['range_min'] <= range_val <= self.config['range_max']):
+        range_val = radar_data["range"]
+        if not (self.config["range_min"] <= range_val <= self.config["range_max"]):
             errors.append(f"Range out of bounds: {range_val:.1f} km")
 
         # Validate range rate
-        range_rate = radar_data['range_rate']
-        if not (self.config['range_rate_min'] <= range_rate <= self.config['range_rate_max']):
+        range_rate = radar_data["range_rate"]
+        if not (
+            self.config["range_rate_min"] <= range_rate <= self.config["range_rate_max"]
+        ):
             errors.append(f"Range rate out of bounds: {range_rate:.3f} km/s")
 
         # Validate angles
-        azimuth = radar_data['azimuth']
-        elevation = radar_data['elevation']
+        azimuth = radar_data["azimuth"]
+        elevation = radar_data["elevation"]
 
         if not (0 <= azimuth < 360):
-            radar_data['azimuth'] = azimuth % 360
+            radar_data["azimuth"] = azimuth % 360
             warnings.append("Normalized azimuth to [0, 360)")
 
         if not (0 <= elevation <= 90):
             errors.append(f"Elevation out of range [0, 90]: {elevation}°")
 
         # Validate optional fields
-        if 'rcs' in radar_data:
-            rcs = radar_data['rcs']
-            if not (self.config['rcs_min'] <= rcs <= self.config['rcs_max']):
+        if "rcs" in radar_data:
+            rcs = radar_data["rcs"]
+            if not (self.config["rcs_min"] <= rcs <= self.config["rcs_max"]):
                 warnings.append(f"RCS out of typical range: {rcs:.3f} m^2")
 
-        if 'snr' in radar_data:
-            snr = radar_data['snr']
-            if not (self.config['snr_min'] <= snr <= self.config['snr_max']):
+        if "snr" in radar_data:
+            snr = radar_data["snr"]
+            if not (self.config["snr_min"] <= snr <= self.config["snr_max"]):
                 warnings.append(f"SNR out of typical range: {snr:.1f} dB")
             elif snr < 10:
                 warnings.append(f"Low SNR (unreliable detection): {snr:.1f} dB")
 
         # Validate timestamp
         try:
-            timestamp = datetime.fromisoformat(radar_data['timestamp']) \
-                       if isinstance(radar_data['timestamp'], str) \
-                       else radar_data['timestamp']
+            timestamp = (
+                datetime.fromisoformat(radar_data["timestamp"])
+                if isinstance(radar_data["timestamp"], str)
+                else radar_data["timestamp"]
+            )
 
             age = datetime.utcnow() - timestamp
-            if age.total_seconds() > 3600 * self.config['max_age_hours']:
-                warnings.append(f"Old radar data: {age.total_seconds()/3600:.1f} hours old")
+            if age.total_seconds() > 3600 * self.config["max_age_hours"]:
+                warnings.append(
+                    f"Old radar data: {age.total_seconds()/3600:.1f} hours old"
+                )
         except Exception as e:
             errors.append(f"Invalid timestamp: {e}")
 
@@ -394,11 +427,12 @@ class DataValidator:
             is_valid=is_valid,
             errors=errors,
             warnings=warnings,
-            normalized_data=radar_data if is_valid else None
+            normalized_data=radar_data if is_valid else None,
         )
 
-    def validate_batch(self, data_list: List[Dict],
-                      data_type: str) -> Tuple[List[Dict], List[str]]:
+    def validate_batch(
+        self, data_list: List[Dict], data_type: str
+    ) -> Tuple[List[Dict], List[str]]:
         """
         Validate batch of data
 
@@ -411,10 +445,10 @@ class DataValidator:
             Tuple of (valid_data, error_messages)
         """
         validators = {
-            'orbital_elements': self.validate_orbital_elements,
-            'state_vector': self.validate_state_vector,
-            'telescope_image': self.validate_telescope_image,
-            'radar_return': self.validate_radar_return,
+            "orbital_elements": self.validate_orbital_elements,
+            "state_vector": self.validate_state_vector,
+            "telescope_image": self.validate_telescope_image,
+            "radar_return": self.validate_radar_return,
         }
 
         if data_type not in validators:
@@ -436,8 +470,10 @@ class DataValidator:
             for warning in result.warnings:
                 logger.warning(f"Item {i}: {warning}")
 
-        logger.info(f"Validated {len(data_list)} items: "
-                   f"{len(valid_data)} valid, {len(data_list) - len(valid_data)} invalid")
+        logger.info(
+            f"Validated {len(data_list)} items: "
+            f"{len(valid_data)} valid, {len(data_list) - len(valid_data)} invalid"
+        )
 
         return valid_data, all_errors
 
@@ -450,13 +486,13 @@ if __name__ == "__main__":
 
     # Test orbital elements
     elements = {
-        'semi_major_axis': 6900,
-        'eccentricity': 0.001,
-        'inclination': 51.6,
-        'raan': 120.5,
-        'arg_perigee': 45.2,
-        'mean_anomaly': 180.0,
-        'epoch': datetime.utcnow().isoformat()
+        "semi_major_axis": 6900,
+        "eccentricity": 0.001,
+        "inclination": 51.6,
+        "raan": 120.5,
+        "arg_perigee": 45.2,
+        "mean_anomaly": 180.0,
+        "epoch": datetime.utcnow().isoformat(),
     }
 
     result = validator.validate_orbital_elements(elements)
@@ -467,10 +503,7 @@ if __name__ == "__main__":
         print(f"  Warnings: {result.warnings}")
 
     # Test state vector
-    state = {
-        'position': [7000, 0, 0],
-        'velocity': [0, 7.5, 0]
-    }
+    state = {"position": [7000, 0, 0], "velocity": [0, 7.5, 0]}
 
     result = validator.validate_state_vector(state)
     print(f"State vector valid: {result.is_valid}")

@@ -201,7 +201,7 @@ jobs:
 
       - name: Run isort (import sorting)
         run: |
-          isort --check-only --diff space_debris_tracker/ tests/
+          isort --profile black --check-only --diff space_debris_tracker/ tests/
 
       - name: Run Flake8 (linting)
         run: |

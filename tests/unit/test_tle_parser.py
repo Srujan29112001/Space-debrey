@@ -3,16 +3,14 @@ Unit Tests for TLE Parser
 Tests TLE parsing, validation, and SGP4 propagation
 """
 
-import pytest
-import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from space_debris_tracker.data_ingestion.tle_parser import (
-    TLEParser,
-    OrbitalElements
-)
-from tests.utils import generate_tle, assert_valid_state_vector
+import numpy as np
+import pytest
+
+from space_debris_tracker.data_ingestion.tle_parser import OrbitalElements, TLEParser
+from tests.utils import assert_valid_state_vector, generate_tle
 
 
 @pytest.mark.unit
@@ -127,7 +125,7 @@ class TestTLEParser:
         elements = parser.parse_tle(line1, line2, name)
 
         # Propagate at multiple times
-        times = [elements.epoch + timedelta(minutes=i*10) for i in range(10)]
+        times = [elements.epoch + timedelta(minutes=i * 10) for i in range(10)]
         positions = []
         velocities = []
 
@@ -145,7 +143,7 @@ class TestTLEParser:
 
         # Check adjacent positions are close
         for i in range(len(positions) - 1):
-            dist = np.linalg.norm(positions[i+1] - positions[i])
+            dist = np.linalg.norm(positions[i + 1] - positions[i])
             assert dist < 500.0  # Should move less than 500 km in 10 min
 
     def test_epoch_year_handling(self):
@@ -153,14 +151,18 @@ class TestTLEParser:
         parser = TLEParser()
 
         # Year 23 -> 2023
-        line1_2023 = "1 25544U 98067A   23001.00000000  .00016717  00000-0  10270-3 0  9005"
+        line1_2023 = (
+            "1 25544U 98067A   23001.00000000  .00016717  00000-0  10270-3 0  9005"
+        )
         line2 = "2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72834465 00009"
 
         elements = parser.parse_tle(line1_2023, line2)
         assert elements.epoch.year == 2023
 
         # Year 99 -> 1999
-        line1_1999 = "1 25544U 98067A   99001.00000000  .00016717  00000-0  10270-3 0  9005"
+        line1_1999 = (
+            "1 25544U 98067A   99001.00000000  .00016717  00000-0  10270-3 0  9005"
+        )
         elements = parser.parse_tle(line1_1999, line2)
         assert elements.epoch.year == 1999
 
@@ -173,16 +175,15 @@ class TestTLEParser:
         data_dict = elements.to_dict()
 
         assert isinstance(data_dict, dict)
-        assert data_dict['norad_id'] == 25544
-        assert data_dict['name'] == name
-        assert 'epoch' in data_dict
-        assert 'semi_major_axis' in data_dict
+        assert data_dict["norad_id"] == 25544
+        assert data_dict["name"] == name
+        assert "epoch" in data_dict
+        assert "semi_major_axis" in data_dict
 
-    @pytest.mark.parametrize("norad_id,expected_name", [
-        (25544, "ISS (ZARYA)"),
-        (25338, "NOAA 15"),
-        (20580, "HUBBLE SPACE TELESCOPE")
-    ])
+    @pytest.mark.parametrize(
+        "norad_id,expected_name",
+        [(25544, "ISS (ZARYA)"), (25338, "NOAA 15"), (20580, "HUBBLE SPACE TELESCOPE")],
+    )
     def test_parse_multiple_satellites(self, sample_tle_file, norad_id, expected_name):
         """Test parsing file with multiple satellites"""
         parser = TLEParser()
@@ -199,7 +200,10 @@ class TestTLEParser:
         parser = TLEParser()
 
         line = "1 25544U 98067A   23001.00000000  .00016717  00000-0  10270-3 0  900"
-        checksum = parser._validate_tle(line + "5", "2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72834465 00009")
+        checksum = parser._validate_tle(
+            line + "5",
+            "2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72834465 00009",
+        )
 
         assert checksum  # Should be valid
 
@@ -258,9 +262,9 @@ class TestOrbitalElements:
             arg_perigee=0.0,
             mean_anomaly=0.0,
             bstar=0.0001,
-            classification='U',
+            classification="U",
             element_set_number=1,
-            revolution_number=0
+            revolution_number=0,
         )
 
         assert elements.norad_id == 25544
@@ -279,9 +283,9 @@ class TestOrbitalElements:
             arg_perigee=0.0,
             mean_anomaly=0.0,
             bstar=0.0001,
-            classification='U',
+            classification="U",
             element_set_number=1,
-            revolution_number=0
+            revolution_number=0,
         )
 
         elements.calculate_derived_elements()

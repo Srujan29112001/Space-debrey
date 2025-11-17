@@ -3,10 +3,11 @@ RL-based Observation Scheduler
 Prioritizes observations based on collision risk and resource constraints
 """
 
+from typing import Dict, List
+
 import numpy as np
 import torch
 import torch.nn as nn
-from typing import Dict, List
 
 
 class DQN(nn.Module):
@@ -22,7 +23,7 @@ class DQN(nn.Module):
             nn.ReLU(),
             nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Linear(128, action_dim)
+            nn.Linear(128, action_dim),
         )
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
@@ -35,13 +36,15 @@ class ObservationScheduler:
     Learns to prioritize observations for maximum collision detection
     """
 
-    def __init__(self,
-                 satellite_id: int,
-                 state_dim: int = 20,
-                 action_dim: int = 10,
-                 learning_rate: float = 0.001,
-                 gamma: float = 0.99,
-                 epsilon: float = 0.1):
+    def __init__(
+        self,
+        satellite_id: int,
+        state_dim: int = 20,
+        action_dim: int = 10,
+        learning_rate: float = 0.001,
+        gamma: float = 0.99,
+        epsilon: float = 0.1,
+    ):
         """
         Initialize scheduler
 
@@ -61,10 +64,7 @@ class ObservationScheduler:
 
         # Q-network
         self.qnetwork = DQN(state_dim, action_dim)
-        self.optimizer = torch.optim.Adam(
-            self.qnetwork.parameters(),
-            lr=learning_rate
-        )
+        self.optimizer = torch.optim.Adam(self.qnetwork.parameters(), lr=learning_rate)
 
         # Experience replay buffer
         self.experience_buffer = []
@@ -100,21 +100,23 @@ class ObservationScheduler:
         """Convert action index to observation plan"""
         # Map actions to observation strategies
         strategies = {
-            0: {'priority': 'critical', 'frequency': 'continuous'},
-            1: {'priority': 'high', 'frequency': 'every_minute'},
-            2: {'priority': 'medium', 'frequency': 'every_5_minutes'},
-            3: {'priority': 'low', 'frequency': 'every_15_minutes'},
-            4: {'priority': 'minimal', 'frequency': 'hourly'},
-            5: {'priority': 'critical', 'frequency': 'targeted'},
-            6: {'priority': 'high', 'frequency': 'sweep'},
-            7: {'priority': 'medium', 'frequency': 'periodic'},
-            8: {'priority': 'low', 'frequency': 'opportunistic'},
-            9: {'priority': 'adaptive', 'frequency': 'dynamic'}
+            0: {"priority": "critical", "frequency": "continuous"},
+            1: {"priority": "high", "frequency": "every_minute"},
+            2: {"priority": "medium", "frequency": "every_5_minutes"},
+            3: {"priority": "low", "frequency": "every_15_minutes"},
+            4: {"priority": "minimal", "frequency": "hourly"},
+            5: {"priority": "critical", "frequency": "targeted"},
+            6: {"priority": "high", "frequency": "sweep"},
+            7: {"priority": "medium", "frequency": "periodic"},
+            8: {"priority": "low", "frequency": "opportunistic"},
+            9: {"priority": "adaptive", "frequency": "dynamic"},
         }
 
         return strategies.get(action, strategies[0])
 
-    def update(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray):
+    def update(
+        self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray
+    ):
         """
         Update Q-network
 
@@ -137,7 +139,9 @@ class ObservationScheduler:
     def _update_network(self, batch_size: int = 32):
         """Update network using experience replay"""
         # Sample random batch
-        indices = np.random.choice(len(self.experience_buffer), batch_size, replace=False)
+        indices = np.random.choice(
+            len(self.experience_buffer), batch_size, replace=False
+        )
         batch = [self.experience_buffer[i] for i in indices]
 
         # Prepare tensors

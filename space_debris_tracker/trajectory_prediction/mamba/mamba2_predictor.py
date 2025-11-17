@@ -3,10 +3,11 @@ Mamba2 Predictor for Long-term Orbit Evolution
 State Space Model for efficient long-sequence modeling
 """
 
-import torch
-import torch.nn as nn
 import math
 from typing import Optional
+
+import torch
+import torch.nn as nn
 
 
 class S6Block(nn.Module):
@@ -31,7 +32,7 @@ class S6Block(nn.Module):
             out_channels=d_model,
             kernel_size=d_conv,
             groups=d_model,
-            padding=d_conv - 1
+            padding=d_conv - 1,
         )
 
         # SSM parameters
@@ -113,13 +114,15 @@ class Mamba2Predictor(nn.Module):
     Efficient state space model for very long sequences
     """
 
-    def __init__(self,
-                 d_model: int = 512,
-                 d_state: int = 128,
-                 d_conv: int = 4,
-                 expand: int = 2,
-                 n_layers: int = 24,
-                 seq_len: int = 10000):
+    def __init__(
+        self,
+        d_model: int = 512,
+        d_state: int = 128,
+        d_conv: int = 4,
+        expand: int = 2,
+        n_layers: int = 24,
+        seq_len: int = 10000,
+    ):
         """
         Initialize Mamba2
 
@@ -140,10 +143,12 @@ class Mamba2Predictor(nn.Module):
         self.input_proj = nn.Linear(6, d_model)
 
         # Mamba blocks
-        self.layers = nn.ModuleList([
-            S6Block(d_model=d_model, d_state=d_state, d_conv=d_conv)
-            for _ in range(n_layers)
-        ])
+        self.layers = nn.ModuleList(
+            [
+                S6Block(d_model=d_model, d_state=d_state, d_conv=d_conv)
+                for _ in range(n_layers)
+            ]
+        )
 
         # Output projection
         self.output_proj = nn.Linear(d_model, 6)
@@ -180,11 +185,7 @@ class Mamba2Predictor(nn.Module):
 if __name__ == "__main__":
     # Test Mamba2
     model = Mamba2Predictor(
-        d_model=512,
-        d_state=128,
-        d_conv=4,
-        n_layers=12,
-        seq_len=10000
+        d_model=512, d_state=128, d_conv=4, n_layers=12, seq_len=10000
     )
 
     print(f"Mamba2 Predictor:")

@@ -3,11 +3,12 @@
 Reconstructs 3D shape and estimates tumble rate from multi-view imagery
 """
 
+from typing import Dict, List, Tuple
+
+import cv2
 import numpy as np
 import torch
 import torch.nn as nn
-from typing import List, Dict, Tuple
-import cv2
 
 
 class GaussianSplatting3D:
@@ -16,11 +17,13 @@ class GaussianSplatting3D:
     Simplified implementation for debris shape reconstruction
     """
 
-    def __init__(self,
-                 num_points: int = 5000,
-                 optimization_iterations: int = 100,
-                 learning_rate: float = 0.01,
-                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu'):
+    def __init__(
+        self,
+        num_points: int = 5000,
+        optimization_iterations: int = 100,
+        learning_rate: float = 0.01,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+    ):
         """
         Initialize 3D Gaussian Splatting
 
@@ -47,11 +50,11 @@ class GaussianSplatting3D:
         """
         if len(views) < 2:
             return {
-                'num_gaussians': 0,
-                'volume': 0.0,
-                'surface_area': 0.0,
-                'principal_axes': np.zeros((3, 3)),
-                'confidence': 0.0
+                "num_gaussians": 0,
+                "volume": 0.0,
+                "surface_area": 0.0,
+                "principal_axes": np.zeros((3, 3)),
+                "confidence": 0.0,
             }
 
         # Initialize Gaussian points
@@ -127,7 +130,9 @@ class GaussianSplatting3D:
 
         return points.detach()
 
-    def _compute_loss(self, points: torch.Tensor, views: List[np.ndarray]) -> torch.Tensor:
+    def _compute_loss(
+        self, points: torch.Tensor, views: List[np.ndarray]
+    ) -> torch.Tensor:
         """Compute reconstruction loss"""
         # Simplified loss - in production implement proper splatting rendering
         # For now, use point cloud variance as regularization
@@ -165,12 +170,13 @@ class GaussianSplatting3D:
         # Estimate surface area (convex hull approximation)
         try:
             from scipy.spatial import ConvexHull
+
             hull = ConvexHull(points_np)
             surface_area = hull.area
         except:
             # Fallback: approximate as sphere
             radius = np.mean(bbox_size) / 2.0
-            surface_area = 4 * np.pi * radius ** 2
+            surface_area = 4 * np.pi * radius**2
 
         # Compute principal axes (PCA)
         center = np.mean(points_np, axis=0)
@@ -186,13 +192,13 @@ class GaussianSplatting3D:
             principal_axes = np.eye(3)
 
         return {
-            'num_gaussians': len(points),
-            'volume': float(volume),
-            'surface_area': float(surface_area),
-            'principal_axes': principal_axes,
-            'bbox_size': bbox_size,
-            'center': center,
-            'confidence': 0.8  # Placeholder
+            "num_gaussians": len(points),
+            "volume": float(volume),
+            "surface_area": float(surface_area),
+            "principal_axes": principal_axes,
+            "bbox_size": bbox_size,
+            "center": center,
+            "confidence": 0.8,  # Placeholder
         }
 
 
@@ -203,9 +209,7 @@ class TumbleRateEstimator:
         """Initialize tumble rate estimator"""
         pass
 
-    def estimate(self,
-                 shape_sequence: List[Dict],
-                 timestamps: List[float]) -> Dict:
+    def estimate(self, shape_sequence: List[Dict], timestamps: List[float]) -> Dict:
         """
         Estimate tumble rate from shape sequence
 
@@ -218,13 +222,13 @@ class TumbleRateEstimator:
         """
         if len(shape_sequence) < 3:
             return {
-                'tumble_rate': 0.0,
-                'tumble_axis': np.array([0, 0, 1]),
-                'confidence': 0.0
+                "tumble_rate": 0.0,
+                "tumble_axis": np.array([0, 0, 1]),
+                "confidence": 0.0,
             }
 
         # Extract principal axes over time
-        axes_sequence = [s['principal_axes'] for s in shape_sequence]
+        axes_sequence = [s["principal_axes"] for s in shape_sequence]
 
         # Compute rotation between consecutive frames
         rotation_angles = []
@@ -243,10 +247,10 @@ class TumbleRateEstimator:
         tumble_axis = np.array([0, 0, 1])  # Placeholder
 
         return {
-            'tumble_rate': float(tumble_rate),
-            'tumble_axis': tumble_axis,
-            'confidence': 0.7,
-            'angular_velocities': angular_velocities.tolist()
+            "tumble_rate": float(tumble_rate),
+            "tumble_axis": tumble_axis,
+            "confidence": 0.7,
+            "angular_velocities": angular_velocities.tolist(),
         }
 
     def _compute_rotation_angle(self, axes1: np.ndarray, axes2: np.ndarray) -> float:
@@ -267,8 +271,7 @@ if __name__ == "__main__":
 
     # Generate test views
     test_views = [
-        np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
-        for _ in range(5)
+        np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8) for _ in range(5)
     ]
 
     # Reconstruct

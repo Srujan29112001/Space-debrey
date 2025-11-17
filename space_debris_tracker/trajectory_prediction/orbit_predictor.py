@@ -3,22 +3,24 @@ Orbit Prediction Engine
 Integrates PINN, Transformer, and Mamba2 for comprehensive trajectory prediction
 """
 
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
 
-from .pinn.physics_informed_nn import PhysicsInformedNN
-from .transformer.trajectory_transformer import TrajectoryTransformer
 from .mamba.mamba2_predictor import Mamba2Predictor
 from .physics.orbital_mechanics import OrbitalMechanics
+from .pinn.physics_informed_nn import PhysicsInformedNN
+from .transformer.trajectory_transformer import TrajectoryTransformer
 from .uncertainty.ensemble import DeepEnsemble
 
 
 @dataclass
 class TrajectoryPrediction:
     """Trajectory prediction result"""
+
     time: np.ndarray
     position: np.ndarray  # [N, 3]
     velocity: np.ndarray  # [N, 3]
@@ -32,8 +34,7 @@ class OrbitPredictionEngine:
     Combines PINN, Transformer, and Mamba2 for trajectory prediction
     """
 
-    def __init__(self,
-                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu'):
+    def __init__(self, device: str = "cuda" if torch.cuda.is_available() else "cpu"):
         """
         Initialize prediction engine
 
@@ -47,7 +48,7 @@ class OrbitPredictionEngine:
             input_dim=7,  # Position (3) + Velocity (3) + Time (1)
             hidden_dims=[256, 512, 512, 256],
             output_dim=6,  # Position (3) + Velocity (3)
-            physics_loss_weight=0.1
+            physics_loss_weight=0.1,
         ).to(device)
 
         # Transformer for multi-object forecasting
@@ -57,37 +58,32 @@ class OrbitPredictionEngine:
             num_encoder_layers=6,
             num_decoder_layers=6,
             dim_feedforward=2048,
-            dropout=0.1
+            dropout=0.1,
         ).to(device)
 
         # Mamba2 for long-term predictions
         self.mamba = Mamba2Predictor(
-            d_model=512,
-            d_state=128,
-            d_conv=4,
-            expand=2,
-            seq_len=10000
+            d_model=512, d_state=128, d_conv=4, expand=2, seq_len=10000
         ).to(device)
 
         # Orbital mechanics
         self.orbital_mechanics = OrbitalMechanics()
 
         # Uncertainty estimation
-        self.uncertainty_estimator = DeepEnsemble(
-            base_model=self.pinn,
-            n_models=5
-        )
+        self.uncertainty_estimator = DeepEnsemble(base_model=self.pinn, n_models=5)
 
         # Nearby objects for multi-body interactions
         self.nearby_objects = []
 
         print(f"OrbitPredictionEngine initialized on {device}")
 
-    def predict_trajectory(self,
-                          initial_state: np.ndarray,
-                          time_horizon: float,
-                          dt: float = 60.0,
-                          include_uncertainty: bool = True) -> Dict:
+    def predict_trajectory(
+        self,
+        initial_state: np.ndarray,
+        time_horizon: float,
+        dt: float = 60.0,
+        include_uncertainty: bool = True,
+    ) -> Dict:
         """
         Predict debris trajectory
 
@@ -141,17 +137,17 @@ class OrbitPredictionEngine:
             uncertainty = uncertainty.cpu().numpy()
 
         return {
-            'time': time_steps,
-            'position': positions,
-            'velocity': velocities,
-            'uncertainty': uncertainty,
-            'collision_probability': collision_prob,
-            'method': 'PINN+Transformer+Mamba2'
+            "time": time_steps,
+            "position": positions,
+            "velocity": velocities,
+            "uncertainty": uncertainty,
+            "collision_probability": collision_prob,
+            "method": "PINN+Transformer+Mamba2",
         }
 
-    def _predict_pinn(self,
-                     initial_state: torch.Tensor,
-                     time_steps: np.ndarray) -> torch.Tensor:
+    def _predict_pinn(
+        self, initial_state: torch.Tensor, time_steps: np.ndarray
+    ) -> torch.Tensor:
         """
         Predict using Physics-Informed Neural Network
 
@@ -174,19 +170,16 @@ class OrbitPredictionEngine:
                 nn_pred = self.pinn(input_vec.unsqueeze(0)).squeeze(0)
 
             # Physics correction
-            physics_corrected = self._apply_physics_constraints(
-                nn_pred, state, dt=60.0
-            )
+            physics_corrected = self._apply_physics_constraints(nn_pred, state, dt=60.0)
 
             trajectory.append(physics_corrected)
             state = physics_corrected
 
         return torch.stack(trajectory)
 
-    def _apply_physics_constraints(self,
-                                   prediction: torch.Tensor,
-                                   state: torch.Tensor,
-                                   dt: float) -> torch.Tensor:
+    def _apply_physics_constraints(
+        self, prediction: torch.Tensor, state: torch.Tensor, dt: float
+    ) -> torch.Tensor:
         """
         Apply orbital mechanics constraints
 
@@ -203,17 +196,21 @@ class OrbitPredictionEngine:
 
         # Compute physics-based update
         new_pos, new_vel = self.orbital_mechanics.propagate(
-            position, velocity, dt,
+            position,
+            velocity,
+            dt,
             include_j2=True,
             include_drag=True,
-            include_solar_pressure=True
+            include_solar_pressure=True,
         )
 
         # Convert to torch
-        physics_state = torch.cat([
-            torch.from_numpy(new_pos).float().to(self.device),
-            torch.from_numpy(new_vel).float().to(self.device)
-        ])
+        physics_state = torch.cat(
+            [
+                torch.from_numpy(new_pos).float().to(self.device),
+                torch.from_numpy(new_vel).float().to(self.device),
+            ]
+        )
 
         # Blend with neural network prediction
         alpha = 0.7  # Trust physics more than NN
@@ -236,16 +233,15 @@ class OrbitPredictionEngine:
 
         # Transformer refinement
         with torch.no_grad():
-            refined = self.transformer(
-                trajectory.unsqueeze(0),
-                nearby_encoded
-            ).squeeze(0)
+            refined = self.transformer(trajectory.unsqueeze(0), nearby_encoded).squeeze(
+                0
+            )
 
         return refined
 
-    def _predict_mamba(self,
-                      trajectory: torch.Tensor,
-                      time_steps: np.ndarray) -> torch.Tensor:
+    def _predict_mamba(
+        self, trajectory: torch.Tensor, time_steps: np.ndarray
+    ) -> torch.Tensor:
         """
         Long-term prediction using Mamba2
 
@@ -265,7 +261,7 @@ class OrbitPredictionEngine:
             long_term = self.mamba(context.unsqueeze(0)).squeeze(0)
 
         # Take only the future part
-        return long_term[-len(time_steps):]
+        return long_term[-len(time_steps) :]
 
     def _encode_nearby_objects(self) -> torch.Tensor:
         """Encode nearby objects for Transformer"""
@@ -288,9 +284,9 @@ class OrbitPredictionEngine:
         # In production: retrieve from database
         return torch.randn(1000, 6, device=self.device)
 
-    def _estimate_uncertainty(self,
-                             initial_state: torch.Tensor,
-                             time_steps: np.ndarray) -> torch.Tensor:
+    def _estimate_uncertainty(
+        self, initial_state: torch.Tensor, time_steps: np.ndarray
+    ) -> torch.Tensor:
         """
         Estimate uncertainty using ensemble
 
@@ -303,9 +299,9 @@ class OrbitPredictionEngine:
         """
         return self.uncertainty_estimator.estimate(initial_state, time_steps)
 
-    def _calculate_collision_probability(self,
-                                        trajectory: torch.Tensor,
-                                        uncertainty: Optional[torch.Tensor]) -> float:
+    def _calculate_collision_probability(
+        self, trajectory: torch.Tensor, uncertainty: Optional[torch.Tensor]
+    ) -> float:
         """
         Calculate collision probability
 
@@ -352,16 +348,15 @@ if __name__ == "__main__":
 
     # Initial state (ISS-like orbit)
     # Position: ~400 km altitude
-    initial_state = np.array([
-        6778.0, 0.0, 0.0,  # Position (km)
-        0.0, 7.66, 0.0     # Velocity (km/s)
-    ])
+    initial_state = np.array(
+        [6778.0, 0.0, 0.0, 0.0, 7.66, 0.0]  # Position (km)  # Velocity (km/s)
+    )
 
     # Predict 7 days ahead
     prediction = predictor.predict_trajectory(
         initial_state=initial_state,
         time_horizon=7 * 86400,  # 7 days
-        dt=60.0  # 1 minute steps
+        dt=60.0,  # 1 minute steps
     )
 
     print("Trajectory Prediction:")

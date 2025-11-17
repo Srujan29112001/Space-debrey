@@ -3,9 +3,10 @@ Space-specific image preprocessing
 Handles star removal, cosmic ray detection, contrast enhancement
 """
 
+from typing import Tuple
+
 import cv2
 import numpy as np
-from typing import Tuple
 
 
 class SpaceImagePreprocessor:
@@ -146,7 +147,7 @@ class SpaceImagePreprocessor:
         img_max = np.max(img_float)
 
         if img_max > img_min:
-            normalized = ((img_float - img_min) / (img_max - img_min) * 255)
+            normalized = (img_float - img_min) / (img_max - img_min) * 255
         else:
             normalized = img_float
 

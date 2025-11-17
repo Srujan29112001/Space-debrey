@@ -3,20 +3,21 @@ Unified Training Framework
 Generic trainer supporting all models with DDP, mixed precision, and W&B integration
 """
 
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+import numpy as np
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, DistributedSampler
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.cuda.amp import autocast, GradScaler
-import torch.distributed as dist
-from pathlib import Path
-from typing import Dict, Optional, Callable, Any, List
-import numpy as np
-from tqdm import tqdm
-from datetime import datetime
-import os
 import yaml
+from torch.cuda.amp import GradScaler, autocast
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, DistributedSampler
+from tqdm import tqdm
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -25,18 +26,19 @@ except ImportError:
 
 try:
     import wandb
+
     WANDB_AVAILABLE = True
 except ImportError:
     WANDB_AVAILABLE = False
 
 from .checkpoint_manager import CheckpointManager
-from .validation import TrajectoryEvaluator, DetectionEvaluator, ConjunctionEvaluator
+from .validation import ConjunctionEvaluator, DetectionEvaluator, TrajectoryEvaluator
 
 
 class EarlyStopping:
     """Early stopping to stop training when validation loss doesn't improve"""
 
-    def __init__(self, patience: int = 10, min_delta: float = 0.0, mode: str = 'min'):
+    def __init__(self, patience: int = 10, min_delta: float = 0.0, mode: str = "min"):
         """
         Initialize early stopping
 
@@ -66,7 +68,7 @@ class EarlyStopping:
             self.best_score = score
             return False
 
-        if self.mode == 'min':
+        if self.mode == "min":
             improved = score < (self.best_score - self.min_delta)
         else:
             improved = score > (self.best_score + self.min_delta)
@@ -100,11 +102,11 @@ class UnifiedTrainer:
         val_loader: DataLoader,
         loss_fn: Callable,
         config: Dict,
-        device: str = 'cuda',
-        output_dir: str = 'outputs/training',
+        device: str = "cuda",
+        output_dir: str = "outputs/training",
         use_ddp: bool = False,
         local_rank: int = 0,
-        world_size: int = 1
+        world_size: int = 1,
     ):
         """
         Initialize unified trainer
@@ -130,15 +132,13 @@ class UnifiedTrainer:
         self.use_ddp = use_ddp
         self.local_rank = local_rank
         self.world_size = world_size
-        self.is_main_process = (local_rank == 0)
+        self.is_main_process = local_rank == 0
 
         # Model
         self.model = model.to(device)
         if use_ddp:
             self.model = DDP(
-                self.model,
-                device_ids=[local_rank],
-                output_device=local_rank
+                self.model, device_ids=[local_rank], output_device=local_rank
             )
 
         # Data
@@ -149,8 +149,8 @@ class UnifiedTrainer:
         self.loss_fn = loss_fn
 
         # Training parameters
-        self.epochs = config.get('epochs', 100)
-        self.gradient_accumulation_steps = config.get('gradient_accumulation', 1)
+        self.epochs = config.get("epochs", 100)
+        self.gradient_accumulation_steps = config.get("gradient_accumulation", 1)
 
         # Optimizer
         self.optimizer = self._build_optimizer()
@@ -159,51 +159,56 @@ class UnifiedTrainer:
         self.scheduler = self._build_scheduler()
 
         # Mixed precision
-        self.use_amp = config.get('use_amp', True)
+        self.use_amp = config.get("use_amp", True)
         self.scaler = GradScaler() if self.use_amp else None
 
         # Early stopping
-        early_stop_config = config.get('early_stopping', {})
-        if early_stop_config.get('enabled', False):
+        early_stop_config = config.get("early_stopping", {})
+        if early_stop_config.get("enabled", False):
             self.early_stopping = EarlyStopping(
-                patience=early_stop_config.get('patience', 10),
-                min_delta=early_stop_config.get('min_delta', 0.0),
-                mode=early_stop_config.get('mode', 'min')
+                patience=early_stop_config.get("patience", 10),
+                min_delta=early_stop_config.get("min_delta", 0.0),
+                mode=early_stop_config.get("mode", "min"),
             )
         else:
             self.early_stopping = None
 
         # Checkpoint manager
         self.checkpoint_manager = CheckpointManager(
-            checkpoint_dir=str(self.output_dir / 'checkpoints'),
-            max_checkpoints=config.get('max_checkpoints', 5),
-            model_name=config.get('model_name', 'model')
+            checkpoint_dir=str(self.output_dir / "checkpoints"),
+            max_checkpoints=config.get("max_checkpoints", 5),
+            model_name=config.get("model_name", "model"),
         )
 
         # Logging
         if self.is_main_process:
             # Tensorboard
             if SummaryWriter is not None:
-                self.writer = SummaryWriter(log_dir=str(self.output_dir / 'logs'))
+                self.writer = SummaryWriter(log_dir=str(self.output_dir / "logs"))
             else:
                 self.writer = None
 
             # Weights & Biases
-            self.use_wandb = config.get('use_wandb', False) and WANDB_AVAILABLE
+            self.use_wandb = config.get("use_wandb", False) and WANDB_AVAILABLE
             if self.use_wandb:
                 wandb.init(
-                    project=config.get('wandb_project', 'space-debris-tracking'),
-                    name=config.get('experiment_name', f'train_{datetime.now().strftime("%Y%m%d_%H%M%S")}'),
-                    config=config
+                    project=config.get("wandb_project", "space-debris-tracking"),
+                    name=config.get(
+                        "experiment_name",
+                        f'train_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
+                    ),
+                    config=config,
                 )
-                wandb.watch(self.model, log='all', log_freq=100)
+                wandb.watch(self.model, log="all", log_freq=100)
         else:
             self.writer = None
             self.use_wandb = False
 
         # Best metrics
-        self.best_metric = float('inf') if config.get('metric_mode', 'min') == 'min' else float('-inf')
-        self.metric_mode = config.get('metric_mode', 'min')
+        self.best_metric = (
+            float("inf") if config.get("metric_mode", "min") == "min" else float("-inf")
+        )
+        self.metric_mode = config.get("metric_mode", "min")
 
         # Save config
         if self.is_main_process:
@@ -223,65 +228,61 @@ class UnifiedTrainer:
 
     def _build_optimizer(self) -> optim.Optimizer:
         """Build optimizer from config"""
-        opt_config = self.config.get('optimizer', {})
-        opt_type = opt_config.get('type', 'adamw')
-        lr = opt_config.get('lr', 1e-4)
-        weight_decay = opt_config.get('weight_decay', 1e-5)
+        opt_config = self.config.get("optimizer", {})
+        opt_type = opt_config.get("type", "adamw")
+        lr = opt_config.get("lr", 1e-4)
+        weight_decay = opt_config.get("weight_decay", 1e-5)
 
-        if opt_type.lower() == 'adamw':
+        if opt_type.lower() == "adamw":
             return optim.AdamW(
                 self.model.parameters(),
                 lr=lr,
                 weight_decay=weight_decay,
-                betas=opt_config.get('betas', (0.9, 0.999))
+                betas=opt_config.get("betas", (0.9, 0.999)),
             )
-        elif opt_type.lower() == 'adam':
-            return optim.Adam(
-                self.model.parameters(),
-                lr=lr,
-                weight_decay=weight_decay
-            )
-        elif opt_type.lower() == 'sgd':
+        elif opt_type.lower() == "adam":
+            return optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
+        elif opt_type.lower() == "sgd":
             return optim.SGD(
                 self.model.parameters(),
                 lr=lr,
                 weight_decay=weight_decay,
-                momentum=opt_config.get('momentum', 0.9)
+                momentum=opt_config.get("momentum", 0.9),
             )
         else:
             raise ValueError(f"Unknown optimizer: {opt_type}")
 
     def _build_scheduler(self):
         """Build learning rate scheduler"""
-        sched_config = self.config.get('scheduler', {})
-        sched_type = sched_config.get('type', 'cosine')
+        sched_config = self.config.get("scheduler", {})
+        sched_type = sched_config.get("type", "cosine")
 
-        if sched_type == 'cosine':
+        if sched_type == "cosine":
             return optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer,
                 T_max=self.epochs,
-                eta_min=sched_config.get('eta_min', 1e-6)
+                eta_min=sched_config.get("eta_min", 1e-6),
             )
-        elif sched_type == 'step':
+        elif sched_type == "step":
             return optim.lr_scheduler.StepLR(
                 self.optimizer,
-                step_size=sched_config.get('step_size', 30),
-                gamma=sched_config.get('gamma', 0.1)
+                step_size=sched_config.get("step_size", 30),
+                gamma=sched_config.get("gamma", 0.1),
             )
-        elif sched_type == 'plateau':
+        elif sched_type == "plateau":
             return optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer,
                 mode=self.metric_mode,
-                factor=sched_config.get('factor', 0.5),
-                patience=sched_config.get('patience', 10)
+                factor=sched_config.get("factor", 0.5),
+                patience=sched_config.get("patience", 10),
             )
         else:
             return None
 
     def _save_config(self):
         """Save training configuration"""
-        config_path = self.output_dir / 'config.yaml'
-        with open(config_path, 'w') as f:
+        config_path = self.output_dir / "config.yaml"
+        with open(config_path, "w") as f:
             yaml.dump(self.config, f, default_flow_style=False)
 
     def train_epoch(self, epoch: int) -> Dict[str, float]:
@@ -325,13 +326,12 @@ class UnifiedTrainer:
             # Update weights
             if (batch_idx + 1) % self.gradient_accumulation_steps == 0:
                 # Gradient clipping
-                if self.config.get('grad_clip', 0) > 0:
+                if self.config.get("grad_clip", 0) > 0:
                     if self.use_amp:
                         self.scaler.unscale_(self.optimizer)
 
                     torch.nn.utils.clip_grad_norm_(
-                        self.model.parameters(),
-                        max_norm=self.config.get('grad_clip')
+                        self.model.parameters(), max_norm=self.config.get("grad_clip")
                     )
 
                 # Optimizer step
@@ -349,7 +349,9 @@ class UnifiedTrainer:
 
             # Update progress bar
             if self.is_main_process:
-                pbar.set_postfix({'loss': loss.item() * self.gradient_accumulation_steps})
+                pbar.set_postfix(
+                    {"loss": loss.item() * self.gradient_accumulation_steps}
+                )
 
         # Average loss
         avg_loss = total_loss / n_batches
@@ -358,7 +360,7 @@ class UnifiedTrainer:
         if self.use_ddp:
             avg_loss = self._sync_metric(avg_loss)
 
-        return {'loss': avg_loss}
+        return {"loss": avg_loss}
 
     def validate(self, epoch: int) -> Dict[str, float]:
         """
@@ -397,7 +399,7 @@ class UnifiedTrainer:
         if self.use_ddp:
             avg_loss = self._sync_metric(avg_loss)
 
-        return {'loss': avg_loss}
+        return {"loss": avg_loss}
 
     def train(self):
         """Run full training loop"""
@@ -406,7 +408,7 @@ class UnifiedTrainer:
 
         for epoch in range(1, self.epochs + 1):
             # Set epoch for distributed sampler
-            if self.use_ddp and hasattr(self.train_loader.sampler, 'set_epoch'):
+            if self.use_ddp and hasattr(self.train_loader.sampler, "set_epoch"):
                 self.train_loader.sampler.set_epoch(epoch)
 
             # Train epoch
@@ -418,7 +420,7 @@ class UnifiedTrainer:
             # Update scheduler
             if self.scheduler is not None:
                 if isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                    self.scheduler.step(val_metrics['loss'])
+                    self.scheduler.step(val_metrics["loss"])
                 else:
                     self.scheduler.step()
 
@@ -427,18 +429,18 @@ class UnifiedTrainer:
                 self._log_metrics(epoch, train_metrics, val_metrics)
 
                 # Check if best model
-                current_metric = val_metrics['loss']
+                current_metric = val_metrics["loss"]
                 is_best = self._is_best_metric(current_metric)
 
                 # Save checkpoint
-                if is_best or epoch % self.config.get('save_freq', 10) == 0:
+                if is_best or epoch % self.config.get("save_freq", 10) == 0:
                     self.checkpoint_manager.save_checkpoint(
                         model=self.model.module if self.use_ddp else self.model,
                         optimizer=self.optimizer,
                         scheduler=self.scheduler,
                         epoch=epoch,
                         metrics=val_metrics,
-                        is_best=is_best
+                        is_best=is_best,
                     )
 
                 # Early stopping
@@ -457,11 +459,14 @@ class UnifiedTrainer:
     def _move_to_device(self, batch: Any) -> Any:
         """Move batch to device"""
         if isinstance(batch, dict):
-            return {k: v.to(self.device) if isinstance(v, torch.Tensor) else v
-                   for k, v in batch.items()}
+            return {
+                k: v.to(self.device) if isinstance(v, torch.Tensor) else v
+                for k, v in batch.items()
+            }
         elif isinstance(batch, (list, tuple)):
-            return [v.to(self.device) if isinstance(v, torch.Tensor) else v
-                   for v in batch]
+            return [
+                v.to(self.device) if isinstance(v, torch.Tensor) else v for v in batch
+            ]
         elif isinstance(batch, torch.Tensor):
             return batch.to(self.device)
         else:
@@ -475,7 +480,7 @@ class UnifiedTrainer:
 
     def _is_best_metric(self, metric: float) -> bool:
         """Check if metric is best so far"""
-        if self.metric_mode == 'min':
+        if self.metric_mode == "min":
             is_best = metric < self.best_metric
         else:
             is_best = metric > self.best_metric
@@ -496,38 +501,35 @@ class UnifiedTrainer:
         # Tensorboard
         if self.writer is not None:
             for key, value in train_metrics.items():
-                self.writer.add_scalar(f'train/{key}', value, epoch)
+                self.writer.add_scalar(f"train/{key}", value, epoch)
             for key, value in val_metrics.items():
-                self.writer.add_scalar(f'val/{key}', value, epoch)
-            self.writer.add_scalar('lr', self.optimizer.param_groups[0]['lr'], epoch)
+                self.writer.add_scalar(f"val/{key}", value, epoch)
+            self.writer.add_scalar("lr", self.optimizer.param_groups[0]["lr"], epoch)
 
         # Weights & Biases
         if self.use_wandb:
-            log_dict = {
-                'epoch': epoch,
-                'lr': self.optimizer.param_groups[0]['lr']
-            }
+            log_dict = {"epoch": epoch, "lr": self.optimizer.param_groups[0]["lr"]}
             for key, value in train_metrics.items():
-                log_dict[f'train/{key}'] = value
+                log_dict[f"train/{key}"] = value
             for key, value in val_metrics.items():
-                log_dict[f'val/{key}'] = value
+                log_dict[f"val/{key}"] = value
 
             wandb.log(log_dict, step=epoch)
 
 
 def setup_distributed():
     """Setup distributed training"""
-    if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        rank = int(os.environ['RANK'])
-        world_size = int(os.environ['WORLD_SIZE'])
-        local_rank = int(os.environ['LOCAL_RANK'])
+    if "RANK" in os.environ and "WORLD_SIZE" in os.environ:
+        rank = int(os.environ["RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+        local_rank = int(os.environ["LOCAL_RANK"])
     else:
         rank = 0
         world_size = 1
         local_rank = 0
 
     if world_size > 1:
-        dist.init_process_group(backend='nccl')
+        dist.init_process_group(backend="nccl")
         torch.cuda.set_device(local_rank)
 
     return rank, world_size, local_rank
@@ -539,29 +541,18 @@ if __name__ == "__main__":
 
     # Example configuration
     config = {
-        'model_name': 'example_model',
-        'epochs': 10,
-        'optimizer': {
-            'type': 'adamw',
-            'lr': 1e-4,
-            'weight_decay': 1e-5
-        },
-        'scheduler': {
-            'type': 'cosine',
-            'eta_min': 1e-6
-        },
-        'use_amp': True,
-        'gradient_accumulation': 4,
-        'grad_clip': 1.0,
-        'early_stopping': {
-            'enabled': True,
-            'patience': 5,
-            'min_delta': 1e-4
-        },
-        'use_wandb': False,
-        'save_freq': 5,
-        'max_checkpoints': 3,
-        'metric_mode': 'min'
+        "model_name": "example_model",
+        "epochs": 10,
+        "optimizer": {"type": "adamw", "lr": 1e-4, "weight_decay": 1e-5},
+        "scheduler": {"type": "cosine", "eta_min": 1e-6},
+        "use_amp": True,
+        "gradient_accumulation": 4,
+        "grad_clip": 1.0,
+        "early_stopping": {"enabled": True, "patience": 5, "min_delta": 1e-4},
+        "use_wandb": False,
+        "save_freq": 5,
+        "max_checkpoints": 3,
+        "metric_mode": "min",
     }
 
     # Example model
@@ -575,8 +566,8 @@ if __name__ == "__main__":
 
     # Example loss function
     def example_loss_fn(model, batch):
-        x = batch['input']
-        y = batch['target']
+        x = batch["input"]
+        y = batch["target"]
         pred = model(x)
         return nn.functional.mse_loss(pred, y)
 
@@ -594,19 +585,13 @@ if __name__ == "__main__":
     # Create dataloaders
     def collate_fn(batch):
         x, y = zip(*batch)
-        return {'input': torch.stack(x), 'target': torch.stack(y)}
+        return {"input": torch.stack(x), "target": torch.stack(y)}
 
     train_loader = DataLoader(
-        train_dataset,
-        batch_size=32,
-        shuffle=True,
-        collate_fn=collate_fn
+        train_dataset, batch_size=32, shuffle=True, collate_fn=collate_fn
     )
     val_loader = DataLoader(
-        val_dataset,
-        batch_size=32,
-        shuffle=False,
-        collate_fn=collate_fn
+        val_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn
     )
 
     # Create model
@@ -616,7 +601,7 @@ if __name__ == "__main__":
     rank, world_size, local_rank = setup_distributed()
     use_ddp = world_size > 1
 
-    device = f'cuda:{local_rank}' if torch.cuda.is_available() else 'cpu'
+    device = f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu"
 
     # Create trainer
     trainer = UnifiedTrainer(
@@ -626,10 +611,10 @@ if __name__ == "__main__":
         loss_fn=example_loss_fn,
         config=config,
         device=device,
-        output_dir='outputs/example_training',
+        output_dir="outputs/example_training",
         use_ddp=use_ddp,
         local_rank=local_rank,
-        world_size=world_size
+        world_size=world_size,
     )
 
     # Train

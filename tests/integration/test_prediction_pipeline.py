@@ -3,16 +3,19 @@ Integration Tests for Prediction Pipeline
 Tests end-to-end trajectory prediction workflow
 """
 
-import pytest
-import numpy as np
 from datetime import datetime, timedelta
 
-from space_debris_tracker.trajectory_prediction.orbit_predictor import OrbitPredictionEngine
+import numpy as np
+import pytest
+
 from space_debris_tracker.data_ingestion.tle_parser import TLEParser
+from space_debris_tracker.trajectory_prediction.orbit_predictor import (
+    OrbitPredictionEngine,
+)
 from tests.utils import (
+    assert_valid_trajectory,
     generate_orbital_state,
     propagate_orbit_simple,
-    assert_valid_trajectory
 )
 
 
@@ -33,24 +36,22 @@ class TestPredictionPipeline:
         state = np.concatenate([position, velocity])
 
         # Predict trajectory
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
         prediction = predictor.predict_trajectory(
-            initial_state=state,
-            time_horizon=5400,  # One orbit
-            dt=60.0
+            initial_state=state, time_horizon=5400, dt=60.0  # One orbit
         )
 
         # Validate
-        assert 'position' in prediction
-        assert 'velocity' in prediction
-        assert len(prediction['time']) > 0
+        assert "position" in prediction
+        assert "velocity" in prediction
+        assert len(prediction["time"]) > 0
 
     def test_multi_object_prediction(self, sample_tle_file):
         """Test predicting multiple objects"""
         parser = TLEParser()
         elements_list = parser.parse_tle_file(str(sample_tle_file))
 
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
         predictions = []
 
         for elements in elements_list[:3]:  # First 3 satellites
@@ -58,9 +59,7 @@ class TestPredictionPipeline:
             state = np.concatenate([pos, vel])
 
             prediction = predictor.predict_trajectory(
-                initial_state=state,
-                time_horizon=3600,
-                dt=300.0
+                initial_state=state, time_horizon=3600, dt=300.0
             )
 
             predictions.append(prediction)
@@ -69,7 +68,7 @@ class TestPredictionPipeline:
 
     def test_conjunction_detection(self):
         """Test conjunction detection between objects"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         # Two objects in similar orbits
         state1 = generate_orbital_state(altitude=400.0, inclination=51.6)
@@ -80,25 +79,23 @@ class TestPredictionPipeline:
 
         # Predict
         prediction = predictor.predict_trajectory(
-            initial_state=state1,
-            time_horizon=5400,
-            dt=60.0
+            initial_state=state1, time_horizon=5400, dt=60.0
         )
 
         # Should calculate collision probability
-        assert 'collision_probability' in prediction
-        assert prediction['collision_probability'] >= 0.0
+        assert "collision_probability" in prediction
+        assert prediction["collision_probability"] >= 0.0
 
     def test_uncertainty_propagation(self, sample_state_vector):
         """Test uncertainty propagation over time"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         # Short-term prediction
         pred_short = predictor.predict_trajectory(
             initial_state=sample_state_vector,
             time_horizon=3600,
             dt=60.0,
-            include_uncertainty=True
+            include_uncertainty=True,
         )
 
         # Long-term prediction
@@ -106,7 +103,7 @@ class TestPredictionPipeline:
             initial_state=sample_state_vector,
             time_horizon=86400,
             dt=300.0,
-            include_uncertainty=True
+            include_uncertainty=True,
         )
 
         # Both should include uncertainty
@@ -115,7 +112,7 @@ class TestPredictionPipeline:
 
     def test_orbital_mechanics_accuracy(self, sample_state_vector):
         """Test orbital mechanics accuracy"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         # Predict one complete orbit
         mu = 398600.4418
@@ -126,12 +123,12 @@ class TestPredictionPipeline:
             initial_state=sample_state_vector,
             time_horizon=period,
             dt=60.0,
-            include_uncertainty=False
+            include_uncertainty=False,
         )
 
         # Final position should be close to initial
         initial_pos = sample_state_vector[:3]
-        final_pos = prediction['position'][-1]
+        final_pos = prediction["position"][-1]
 
         distance = np.linalg.norm(final_pos - initial_pos)
 
@@ -143,7 +140,7 @@ class TestPredictionPipeline:
     def test_perturbation_effects(self, sample_state_vector):
         """Test inclusion of perturbations"""
         from space_debris_tracker.trajectory_prediction.physics.orbital_mechanics import (
-            OrbitalMechanics
+            OrbitalMechanics,
         )
 
         mechanics = OrbitalMechanics()
@@ -153,18 +150,22 @@ class TestPredictionPipeline:
 
         # Propagate with perturbations
         pos_pert, vel_pert = mechanics.propagate(
-            position, velocity, dt=60.0,
+            position,
+            velocity,
+            dt=60.0,
             include_j2=True,
             include_drag=True,
-            include_solar_pressure=True
+            include_solar_pressure=True,
         )
 
         # Propagate without perturbations
         pos_no_pert, vel_no_pert = mechanics.propagate(
-            position, velocity, dt=60.0,
+            position,
+            velocity,
+            dt=60.0,
             include_j2=False,
             include_drag=False,
-            include_solar_pressure=False
+            include_solar_pressure=False,
         )
 
         # Should be different
@@ -174,23 +175,23 @@ class TestPredictionPipeline:
     @pytest.mark.slow
     def test_long_term_propagation(self, sample_state_vector):
         """Test long-term propagation (30 days)"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         prediction = predictor.predict_trajectory(
             initial_state=sample_state_vector,
             time_horizon=86400 * 30,  # 30 days
             dt=3600.0,  # 1 hour steps
-            include_uncertainty=True
+            include_uncertainty=True,
         )
 
         # Should complete without error
-        assert len(prediction['time']) > 0
-        assert prediction['position'].shape[0] > 0
+        assert len(prediction["time"]) > 0
+        assert prediction["position"].shape[0] > 0
 
     def test_maneuver_planning(self, sample_state_vector):
         """Test collision avoidance maneuver planning"""
         from space_debris_tracker.trajectory_prediction.physics.orbital_mechanics import (
-            OrbitalMechanics
+            OrbitalMechanics,
         )
 
         mechanics = OrbitalMechanics()
@@ -201,7 +202,7 @@ class TestPredictionPipeline:
         # Calculate delta-v for altitude change
         delta_v = mechanics.calculate_hohmann_transfer(
             r1=np.linalg.norm(position),
-            r2=np.linalg.norm(position) + 10.0  # 10 km altitude increase
+            r2=np.linalg.norm(position) + 10.0,  # 10 km altitude increase
         )
 
         assert delta_v > 0.0
@@ -227,16 +228,14 @@ class TestPredictionAccuracy:
         pos_init, vel_init = parser.propagate_sgp4(elements, current_time)
         state = np.concatenate([pos_init, vel_init])
 
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
         prediction = predictor.predict_trajectory(
-            initial_state=state,
-            time_horizon=7200,  # 2 hours
-            dt=60.0
+            initial_state=state, time_horizon=7200, dt=60.0  # 2 hours
         )
 
         # Compare final states
-        pos_pred = prediction['position'][-1]
-        vel_pred = prediction['velocity'][-1]
+        pos_pred = prediction["position"][-1]
+        vel_pred = prediction["velocity"][-1]
 
         pos_error = np.linalg.norm(pos_pred - pos_sgp4)
         vel_error = np.linalg.norm(vel_pred - vel_sgp4)
@@ -247,25 +246,23 @@ class TestPredictionAccuracy:
         # Allow reasonable error
         # (Neural network predictions may differ from SGP4)
         assert pos_error < 100.0  # Within 100 km
-        assert vel_error < 1.0     # Within 1 km/s
+        assert vel_error < 1.0  # Within 1 km/s
 
     def test_energy_conservation(self, sample_state_vector):
         """Test energy conservation in prediction"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         prediction = predictor.predict_trajectory(
-            initial_state=sample_state_vector,
-            time_horizon=5400,  # One orbit
-            dt=60.0
+            initial_state=sample_state_vector, time_horizon=5400, dt=60.0  # One orbit
         )
 
         # Calculate orbital energy at each step
         mu = 398600.4418
         energies = []
 
-        for i in range(len(prediction['time'])):
-            r = prediction['position'][i]
-            v = prediction['velocity'][i]
+        for i in range(len(prediction["time"])):
+            r = prediction["position"][i]
+            v = prediction["velocity"][i]
 
             r_mag = np.linalg.norm(r)
             v_mag = np.linalg.norm(v)
@@ -288,20 +285,18 @@ class TestPredictionAccuracy:
 
     def test_angular_momentum_conservation(self, sample_state_vector):
         """Test angular momentum conservation"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         prediction = predictor.predict_trajectory(
-            initial_state=sample_state_vector,
-            time_horizon=5400,
-            dt=60.0
+            initial_state=sample_state_vector, time_horizon=5400, dt=60.0
         )
 
         # Calculate angular momentum
         angular_momenta = []
 
-        for i in range(len(prediction['time'])):
-            r = prediction['position'][i]
-            v = prediction['velocity'][i]
+        for i in range(len(prediction["time"])):
+            r = prediction["position"][i]
+            v = prediction["velocity"][i]
 
             h = np.cross(r, v)
             h_mag = np.linalg.norm(h)
@@ -327,7 +322,7 @@ class TestCollisionPrediction:
 
     def test_close_approach_detection(self):
         """Test detection of close approaches"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         # Two objects with close orbits
         state1 = generate_orbital_state(altitude=400.0)
@@ -337,17 +332,15 @@ class TestCollisionPrediction:
         predictor.add_nearby_object(state2)
 
         prediction = predictor.predict_trajectory(
-            initial_state=state1,
-            time_horizon=5400,
-            dt=60.0
+            initial_state=state1, time_horizon=5400, dt=60.0
         )
 
         # Should detect close approach
-        assert prediction['collision_probability'] >= 0.0
+        assert prediction["collision_probability"] >= 0.0
 
     def test_no_collision_scenario(self):
         """Test scenario with no collision"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         # Distant object
         state1 = generate_orbital_state(altitude=400.0)
@@ -356,10 +349,8 @@ class TestCollisionPrediction:
         predictor.add_nearby_object(state2)
 
         prediction = predictor.predict_trajectory(
-            initial_state=state1,
-            time_horizon=3600,
-            dt=60.0
+            initial_state=state1, time_horizon=3600, dt=60.0
         )
 
         # Low collision probability
-        assert prediction['collision_probability'] < 0.1
+        assert prediction["collision_probability"] < 0.1

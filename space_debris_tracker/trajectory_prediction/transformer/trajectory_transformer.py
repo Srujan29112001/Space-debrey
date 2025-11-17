@@ -3,9 +3,10 @@ Trajectory Transformer
 Multi-object interaction modeling using attention mechanism
 """
 
+import math
+
 import torch
 import torch.nn as nn
-import math
 
 
 class PositionalEncoding(nn.Module):
@@ -15,17 +16,19 @@ class PositionalEncoding(nn.Module):
         super().__init__()
 
         position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model)
+        )
 
         pe = torch.zeros(max_len, 1, d_model)
         pe[:, 0, 0::2] = torch.sin(position * div_term)
         pe[:, 0, 1::2] = torch.cos(position * div_term)
 
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Add positional encoding"""
-        return x + self.pe[:x.size(0)]
+        return x + self.pe[: x.size(0)]
 
 
 class TrajectoryTransformer(nn.Module):
@@ -33,13 +36,15 @@ class TrajectoryTransformer(nn.Module):
     Transformer for trajectory prediction with multi-object interactions
     """
 
-    def __init__(self,
-                 d_model: int = 512,
-                 nhead: int = 8,
-                 num_encoder_layers: int = 6,
-                 num_decoder_layers: int = 6,
-                 dim_feedforward: int = 2048,
-                 dropout: float = 0.1):
+    def __init__(
+        self,
+        d_model: int = 512,
+        nhead: int = 8,
+        num_encoder_layers: int = 6,
+        num_decoder_layers: int = 6,
+        dim_feedforward: int = 2048,
+        dropout: float = 0.1,
+    ):
         """
         Initialize Trajectory Transformer
 
@@ -69,16 +74,14 @@ class TrajectoryTransformer(nn.Module):
             num_decoder_layers=num_decoder_layers,
             dim_feedforward=dim_feedforward,
             dropout=dropout,
-            activation='gelu',
-            batch_first=True
+            activation="gelu",
+            batch_first=True,
         )
 
         # Output projection (d_model -> state)
         self.output_projection = nn.Linear(d_model, 6)
 
-    def forward(self,
-                src: torch.Tensor,
-                tgt: torch.Tensor = None) -> torch.Tensor:
+    def forward(self, src: torch.Tensor, tgt: torch.Tensor = None) -> torch.Tensor:
         """
         Forward pass
 
@@ -113,10 +116,7 @@ class TrajectoryTransformer(nn.Module):
 if __name__ == "__main__":
     # Test transformer
     model = TrajectoryTransformer(
-        d_model=512,
-        nhead=8,
-        num_encoder_layers=6,
-        num_decoder_layers=6
+        d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6
     )
 
     print(f"Trajectory Transformer:")

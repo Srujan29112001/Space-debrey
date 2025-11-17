@@ -3,10 +3,11 @@ Physics-Informed Neural Network (PINN)
 Combines neural networks with orbital mechanics for trajectory prediction
 """
 
+from typing import List, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from typing import List, Tuple
 
 
 class PhysicsInformedNN(nn.Module):
@@ -15,11 +16,13 @@ class PhysicsInformedNN(nn.Module):
     Enforces orbital mechanics constraints during training
     """
 
-    def __init__(self,
-                 input_dim: int = 7,
-                 hidden_dims: List[int] = [256, 512, 512, 256],
-                 output_dim: int = 6,
-                 physics_loss_weight: float = 0.1):
+    def __init__(
+        self,
+        input_dim: int = 7,
+        hidden_dims: List[int] = [256, 512, 512, 256],
+        output_dim: int = 6,
+        physics_loss_weight: float = 0.1,
+    ):
         """
         Initialize PINN
 
@@ -40,12 +43,14 @@ class PhysicsInformedNN(nn.Module):
         prev_dim = input_dim
 
         for hidden_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.LayerNorm(hidden_dim),
-                nn.GELU(),
-                nn.Dropout(0.1)
-            ])
+            layers.extend(
+                [
+                    nn.Linear(prev_dim, hidden_dim),
+                    nn.LayerNorm(hidden_dim),
+                    nn.GELU(),
+                    nn.Dropout(0.1),
+                ]
+            )
             prev_dim = hidden_dim
 
         # Output layer
@@ -55,8 +60,8 @@ class PhysicsInformedNN(nn.Module):
 
         # Physics constants (Earth)
         self.mu = 398600.4418  # km^3/s^2 - Earth's gravitational parameter
-        self.J2 = 1.08263e-3   # J2 coefficient
-        self.Re = 6378.137     # Earth radius (km)
+        self.J2 = 1.08263e-3  # J2 coefficient
+        self.Re = 6378.137  # Earth radius (km)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -70,10 +75,9 @@ class PhysicsInformedNN(nn.Module):
         """
         return self.network(x)
 
-    def compute_physics_loss(self,
-                            prediction: torch.Tensor,
-                            state: torch.Tensor,
-                            dt: float = 1.0) -> torch.Tensor:
+    def compute_physics_loss(
+        self, prediction: torch.Tensor, state: torch.Tensor, dt: float = 1.0
+    ) -> torch.Tensor:
         """
         Compute physics-based loss
 
@@ -105,7 +109,9 @@ class PhysicsInformedNN(nn.Module):
         energy_loss = self._compute_energy_loss(pos_curr, vel_curr, pos_pred, vel_pred)
 
         # Angular momentum conservation loss
-        momentum_loss = self._compute_momentum_loss(pos_curr, vel_curr, pos_pred, vel_pred)
+        momentum_loss = self._compute_momentum_loss(
+            pos_curr, vel_curr, pos_pred, vel_pred
+        )
 
         # Total physics loss
         total_loss = physics_loss + 0.1 * energy_loss + 0.1 * momentum_loss
@@ -124,33 +130,35 @@ class PhysicsInformedNN(nn.Module):
         """
         # Two-body gravity
         r = torch.norm(position, dim=1, keepdim=True)
-        a_gravity = -self.mu * position / (r ** 3)
+        a_gravity = -self.mu * position / (r**3)
 
         # J2 perturbation
         x, y, z = position[:, 0:1], position[:, 1:2], position[:, 2:3]
 
-        factor = 1.5 * self.J2 * self.mu * (self.Re ** 2) / (r ** 5)
+        factor = 1.5 * self.J2 * self.mu * (self.Re**2) / (r**5)
 
-        a_j2_x = factor * x * (5 * (z ** 2) / (r ** 2) - 1)
-        a_j2_y = factor * y * (5 * (z ** 2) / (r ** 2) - 1)
-        a_j2_z = factor * z * (5 * (z ** 2) / (r ** 2) - 3)
+        a_j2_x = factor * x * (5 * (z**2) / (r**2) - 1)
+        a_j2_y = factor * y * (5 * (z**2) / (r**2) - 1)
+        a_j2_z = factor * z * (5 * (z**2) / (r**2) - 3)
 
         a_j2 = torch.cat([a_j2_x, a_j2_y, a_j2_z], dim=1)
 
         return a_gravity + a_j2
 
-    def _compute_energy_loss(self,
-                            pos1: torch.Tensor,
-                            vel1: torch.Tensor,
-                            pos2: torch.Tensor,
-                            vel2: torch.Tensor) -> torch.Tensor:
+    def _compute_energy_loss(
+        self,
+        pos1: torch.Tensor,
+        vel1: torch.Tensor,
+        pos2: torch.Tensor,
+        vel2: torch.Tensor,
+    ) -> torch.Tensor:
         """Compute energy conservation loss"""
         # Specific orbital energy: E = v^2/2 - mu/r
         r1 = torch.norm(pos1, dim=1)
         r2 = torch.norm(pos2, dim=1)
 
-        v1_sq = torch.sum(vel1 ** 2, dim=1)
-        v2_sq = torch.sum(vel2 ** 2, dim=1)
+        v1_sq = torch.sum(vel1**2, dim=1)
+        v2_sq = torch.sum(vel2**2, dim=1)
 
         E1 = v1_sq / 2 - self.mu / r1
         E2 = v2_sq / 2 - self.mu / r2
@@ -160,11 +168,13 @@ class PhysicsInformedNN(nn.Module):
 
         return energy_loss
 
-    def _compute_momentum_loss(self,
-                              pos1: torch.Tensor,
-                              vel1: torch.Tensor,
-                              pos2: torch.Tensor,
-                              vel2: torch.Tensor) -> torch.Tensor:
+    def _compute_momentum_loss(
+        self,
+        pos1: torch.Tensor,
+        vel1: torch.Tensor,
+        pos2: torch.Tensor,
+        vel2: torch.Tensor,
+    ) -> torch.Tensor:
         """Compute angular momentum conservation loss"""
         # Angular momentum: L = r x v
         L1 = torch.cross(pos1, vel1, dim=1)
@@ -175,10 +185,12 @@ class PhysicsInformedNN(nn.Module):
 
         return momentum_loss
 
-    def train_step(self,
-                   inputs: torch.Tensor,
-                   targets: torch.Tensor,
-                   optimizer: torch.optim.Optimizer) -> Tuple[float, float]:
+    def train_step(
+        self,
+        inputs: torch.Tensor,
+        targets: torch.Tensor,
+        optimizer: torch.optim.Optimizer,
+    ) -> Tuple[float, float]:
         """
         Training step with physics loss
 
@@ -215,10 +227,7 @@ class PhysicsInformedNN(nn.Module):
 if __name__ == "__main__":
     # Test PINN
     pinn = PhysicsInformedNN(
-        input_dim=7,
-        hidden_dims=[256, 512, 256],
-        output_dim=6,
-        physics_loss_weight=0.1
+        input_dim=7, hidden_dims=[256, 512, 256], output_dim=6, physics_loss_weight=0.1
     )
 
     print(f"PINN architecture:")

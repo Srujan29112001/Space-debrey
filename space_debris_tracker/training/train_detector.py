@@ -3,26 +3,27 @@ YOLOv7 Detector Training
 Complete training loop with multi-scale training, augmentation, and checkpointing
 """
 
+import math
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast, GradScaler
-from pathlib import Path
-from typing import Dict, Optional, List, Tuple
-import numpy as np
-from tqdm import tqdm
 import yaml
-from datetime import datetime
-import math
+from torch.cuda.amp import GradScaler, autocast
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 try:
     from torch.utils.tensorboard import SummaryWriter
 except ImportError:
     SummaryWriter = None
 
-from .dataset import DebrisImageDataset, create_dataloaders
 from ..computer_vision.detector import YOLOv7Detector
+from .dataset import DebrisImageDataset, create_dataloaders
 
 
 class YOLOv7Loss(nn.Module):
@@ -38,7 +39,7 @@ class YOLOv7Loss(nn.Module):
         img_size: int = 1280,
         box_weight: float = 0.05,
         obj_weight: float = 1.0,
-        cls_weight: float = 0.5
+        cls_weight: float = 0.5,
     ):
         """
         Initialize YOLOv7 Loss
@@ -63,19 +64,19 @@ class YOLOv7Loss(nn.Module):
             self.anchors = [
                 [12, 16, 19, 36, 40, 28],  # P3/8
                 [36, 75, 76, 55, 72, 146],  # P4/16
-                [142, 110, 192, 243, 459, 401]  # P5/32
+                [142, 110, 192, 243, 459, 401],  # P5/32
             ]
         else:
             self.anchors = anchors
 
-        self.bce_cls = nn.BCEWithLogitsLoss(reduction='mean')
-        self.bce_obj = nn.BCEWithLogitsLoss(reduction='mean')
+        self.bce_cls = nn.BCEWithLogitsLoss(reduction="mean")
+        self.bce_obj = nn.BCEWithLogitsLoss(reduction="mean")
 
     def forward(
         self,
         predictions: torch.Tensor,
         targets: List[torch.Tensor],
-        target_labels: List[torch.Tensor]
+        target_labels: List[torch.Tensor],
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """
         Compute YOLOv7 loss
@@ -92,17 +93,16 @@ class YOLOv7Loss(nn.Module):
         batch_size = predictions.shape[0]
 
         # Simplified loss - in production use full YOLOv7 loss
-        box_loss = torch.tensor(0., device=device)
-        obj_loss = torch.tensor(0., device=device)
-        cls_loss = torch.tensor(0., device=device)
+        box_loss = torch.tensor(0.0, device=device)
+        obj_loss = torch.tensor(0.0, device=device)
+        cls_loss = torch.tensor(0.0, device=device)
 
         # For each image in batch
         for i in range(batch_size):
             if len(targets[i]) == 0:
                 # No targets - penalize objectness
                 obj_loss += self.bce_obj(
-                    predictions[i, :, 4],
-                    torch.zeros_like(predictions[i, :, 4])
+                    predictions[i, :, 4], torch.zeros_like(predictions[i, :, 4])
                 )
                 continue
 
@@ -146,16 +146,16 @@ class YOLOv7Loss(nn.Module):
 
         # Total loss
         total_loss = (
-            self.box_weight * box_loss +
-            self.obj_weight * obj_loss +
-            self.cls_weight * cls_loss
+            self.box_weight * box_loss
+            + self.obj_weight * obj_loss
+            + self.cls_weight * cls_loss
         )
 
         loss_dict = {
-            'box_loss': box_loss.item(),
-            'obj_loss': obj_loss.item(),
-            'cls_loss': cls_loss.item(),
-            'total_loss': total_loss.item()
+            "box_loss": box_loss.item(),
+            "obj_loss": obj_loss.item(),
+            "cls_loss": cls_loss.item(),
+            "total_loss": total_loss.item(),
         }
 
         return total_loss, loss_dict
@@ -179,14 +179,8 @@ class YOLOv7Loss(nn.Module):
         boxes2_x2y2 = boxes2[:, :2] + boxes2[:, 2:] / 2
 
         # Compute intersection
-        inter_x1y1 = torch.max(
-            boxes1_x1y1[:, None, :],
-            boxes2_x1y1[None, :, :]
-        )
-        inter_x2y2 = torch.min(
-            boxes1_x2y2[:, None, :],
-            boxes2_x2y2[None, :, :]
-        )
+        inter_x1y1 = torch.max(boxes1_x1y1[:, None, :], boxes2_x1y1[None, :, :])
+        inter_x2y2 = torch.min(boxes1_x2y2[:, None, :], boxes2_x2y2[None, :, :])
 
         inter_wh = (inter_x2y2 - inter_x1y1).clamp(min=0)
         inter_area = inter_wh[:, :, 0] * inter_wh[:, :, 1]
@@ -214,8 +208,8 @@ class YOLOv7Trainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         config: Dict,
-        device: str = 'cuda',
-        output_dir: str = 'outputs/yolo_training'
+        device: str = "cuda",
+        output_dir: str = "outputs/yolo_training",
     ):
         """
         Initialize trainer
@@ -237,16 +231,15 @@ class YOLOv7Trainer:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Training parameters
-        self.epochs = config.get('epochs', 300)
-        self.batch_size = config.get('batch_size', 16)
-        self.img_size = config.get('img_size', 1280)
-        self.multi_scale = config.get('multi_scale', True)
-        self.accumulate = config.get('accumulate', 4)  # Gradient accumulation
+        self.epochs = config.get("epochs", 300)
+        self.batch_size = config.get("batch_size", 16)
+        self.img_size = config.get("img_size", 1280)
+        self.multi_scale = config.get("multi_scale", True)
+        self.accumulate = config.get("accumulate", 4)  # Gradient accumulation
 
         # Loss function
         self.criterion = YOLOv7Loss(
-            num_classes=config.get('num_classes', 4),
-            img_size=self.img_size
+            num_classes=config.get("num_classes", 4), img_size=self.img_size
         )
 
         # Optimizer
@@ -256,24 +249,21 @@ class YOLOv7Trainer:
         self.scheduler = self._build_scheduler()
 
         # Mixed precision training
-        self.use_amp = config.get('use_amp', True)
+        self.use_amp = config.get("use_amp", True)
         self.scaler = GradScaler() if self.use_amp else None
 
         # Tensorboard
         if SummaryWriter is not None:
-            self.writer = SummaryWriter(log_dir=str(self.output_dir / 'logs'))
+            self.writer = SummaryWriter(log_dir=str(self.output_dir / "logs"))
         else:
             self.writer = None
 
         # Best metrics
-        self.best_loss = float('inf')
+        self.best_loss = float("inf")
 
         # Multi-scale image sizes
         if self.multi_scale:
-            self.img_sizes = [
-                self.img_size + i * 32
-                for i in range(-3, 4)
-            ]
+            self.img_sizes = [self.img_size + i * 32 for i in range(-3, 4)]
         else:
             self.img_sizes = [self.img_size]
 
@@ -286,50 +276,40 @@ class YOLOv7Trainer:
 
     def _build_optimizer(self) -> optim.Optimizer:
         """Build optimizer"""
-        lr = self.config.get('lr', 0.01)
-        momentum = self.config.get('momentum', 0.937)
-        weight_decay = self.config.get('weight_decay', 0.0005)
+        lr = self.config.get("lr", 0.01)
+        momentum = self.config.get("momentum", 0.937)
+        weight_decay = self.config.get("weight_decay", 0.0005)
 
         # Separate parameters
         pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
 
         for k, v in self.model.named_modules():
-            if hasattr(v, 'bias') and isinstance(v.bias, nn.Parameter):
+            if hasattr(v, "bias") and isinstance(v.bias, nn.Parameter):
                 pg2.append(v.bias)  # biases
             if isinstance(v, nn.BatchNorm2d):
                 pg0.append(v.weight)  # no decay
-            elif hasattr(v, 'weight') and isinstance(v.weight, nn.Parameter):
+            elif hasattr(v, "weight") and isinstance(v.weight, nn.Parameter):
                 pg1.append(v.weight)  # apply decay
 
-        optimizer = optim.SGD(
-            pg0,
-            lr=lr,
-            momentum=momentum,
-            nesterov=True
-        )
-        optimizer.add_param_group({
-            'params': pg1,
-            'weight_decay': weight_decay
-        })
-        optimizer.add_param_group({'params': pg2})
+        optimizer = optim.SGD(pg0, lr=lr, momentum=momentum, nesterov=True)
+        optimizer.add_param_group({"params": pg1, "weight_decay": weight_decay})
+        optimizer.add_param_group({"params": pg2})
 
         return optimizer
 
     def _build_scheduler(self):
         """Build learning rate scheduler"""
-        scheduler_type = self.config.get('scheduler', 'cosine')
+        scheduler_type = self.config.get("scheduler", "cosine")
 
-        if scheduler_type == 'cosine':
+        if scheduler_type == "cosine":
             return optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer,
                 T_max=self.epochs,
-                eta_min=self.config.get('lr', 0.01) * 0.01
+                eta_min=self.config.get("lr", 0.01) * 0.01,
             )
-        elif scheduler_type == 'step':
+        elif scheduler_type == "step":
             return optim.lr_scheduler.StepLR(
-                self.optimizer,
-                step_size=self.epochs // 3,
-                gamma=0.1
+                self.optimizer, step_size=self.epochs // 3, gamma=0.1
             )
         else:
             return None
@@ -346,12 +326,7 @@ class YOLOv7Trainer:
         """
         self.model.train()
 
-        metrics = {
-            'box_loss': 0.0,
-            'obj_loss': 0.0,
-            'cls_loss': 0.0,
-            'total_loss': 0.0
-        }
+        metrics = {"box_loss": 0.0, "obj_loss": 0.0, "cls_loss": 0.0, "total_loss": 0.0}
 
         pbar = tqdm(self.train_loader, desc=f"Epoch {epoch}/{self.epochs}")
 
@@ -361,9 +336,9 @@ class YOLOv7Trainer:
                 img_size = np.random.choice(self.img_sizes)
                 # Resize would happen here - simplified
 
-            images = batch['images'].to(self.device)
-            bboxes = [b.to(self.device) for b in batch['bboxes']]
-            labels = [l.to(self.device) for l in batch['labels']]
+            images = batch["images"].to(self.device)
+            bboxes = [b.to(self.device) for b in batch["bboxes"]]
+            labels = [l.to(self.device) for l in batch["labels"]]
 
             # Forward pass
             with autocast(enabled=self.use_amp):
@@ -374,7 +349,9 @@ class YOLOv7Trainer:
                 # Reshape predictions for loss
                 # This is simplified - actual YOLOv7 has specific output format
                 batch_size = images.shape[0]
-                predictions = predictions.view(batch_size, -1, 5 + self.criterion.num_classes)
+                predictions = predictions.view(
+                    batch_size, -1, 5 + self.criterion.num_classes
+                )
 
                 # Compute loss
                 loss, loss_dict = self.criterion(predictions, bboxes, labels)
@@ -404,12 +381,14 @@ class YOLOv7Trainer:
                     metrics[key] += loss_dict[key]
 
             # Update progress bar
-            pbar.set_postfix({
-                'loss': loss_dict['total_loss'],
-                'box': loss_dict['box_loss'],
-                'obj': loss_dict['obj_loss'],
-                'cls': loss_dict['cls_loss']
-            })
+            pbar.set_postfix(
+                {
+                    "loss": loss_dict["total_loss"],
+                    "box": loss_dict["box_loss"],
+                    "obj": loss_dict["obj_loss"],
+                    "cls": loss_dict["cls_loss"],
+                }
+            )
 
         # Average metrics
         n_batches = len(self.train_loader)
@@ -430,25 +409,22 @@ class YOLOv7Trainer:
         """
         self.model.eval()
 
-        metrics = {
-            'box_loss': 0.0,
-            'obj_loss': 0.0,
-            'cls_loss': 0.0,
-            'total_loss': 0.0
-        }
+        metrics = {"box_loss": 0.0, "obj_loss": 0.0, "cls_loss": 0.0, "total_loss": 0.0}
 
         with torch.no_grad():
             for batch in tqdm(self.val_loader, desc="Validation"):
-                images = batch['images'].to(self.device)
-                bboxes = [b.to(self.device) for b in batch['bboxes']]
-                labels = [l.to(self.device) for l in batch['labels']]
+                images = batch["images"].to(self.device)
+                bboxes = [b.to(self.device) for b in batch["bboxes"]]
+                labels = [l.to(self.device) for l in batch["labels"]]
 
                 # Forward pass
                 with autocast(enabled=self.use_amp):
                     predictions = self.model(images)
 
                     batch_size = images.shape[0]
-                    predictions = predictions.view(batch_size, -1, 5 + self.criterion.num_classes)
+                    predictions = predictions.view(
+                        batch_size, -1, 5 + self.criterion.num_classes
+                    )
 
                     # Compute loss
                     loss, loss_dict = self.criterion(predictions, bboxes, labels)
@@ -487,18 +463,16 @@ class YOLOv7Trainer:
 
             if self.writer is not None:
                 for key, value in train_metrics.items():
-                    self.writer.add_scalar(f'train/{key}', value, epoch)
+                    self.writer.add_scalar(f"train/{key}", value, epoch)
                 for key, value in val_metrics.items():
-                    self.writer.add_scalar(f'val/{key}', value, epoch)
+                    self.writer.add_scalar(f"val/{key}", value, epoch)
                 self.writer.add_scalar(
-                    'lr',
-                    self.optimizer.param_groups[0]['lr'],
-                    epoch
+                    "lr", self.optimizer.param_groups[0]["lr"], epoch
                 )
 
             # Save checkpoint
-            if val_metrics['total_loss'] < self.best_loss:
-                self.best_loss = val_metrics['total_loss']
+            if val_metrics["total_loss"] < self.best_loss:
+                self.best_loss = val_metrics["total_loss"]
                 self.save_checkpoint(epoch, is_best=True)
                 print(f"  New best model saved!")
 
@@ -514,18 +488,20 @@ class YOLOv7Trainer:
     def save_checkpoint(self, epoch: int, is_best: bool = False):
         """Save checkpoint"""
         checkpoint = {
-            'epoch': epoch,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict() if self.scheduler else None,
-            'best_loss': self.best_loss,
-            'config': self.config
+            "epoch": epoch,
+            "model_state_dict": self.model.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "scheduler_state_dict": (
+                self.scheduler.state_dict() if self.scheduler else None
+            ),
+            "best_loss": self.best_loss,
+            "config": self.config,
         }
 
         if is_best:
-            path = self.output_dir / 'best.pt'
+            path = self.output_dir / "best.pt"
         else:
-            path = self.output_dir / f'checkpoint_epoch_{epoch}.pt'
+            path = self.output_dir / f"checkpoint_epoch_{epoch}.pt"
 
         torch.save(checkpoint, path)
         print(f"Checkpoint saved to {path}")
@@ -534,44 +510,41 @@ class YOLOv7Trainer:
 if __name__ == "__main__":
     # Example training configuration
     config = {
-        'epochs': 300,
-        'batch_size': 16,
-        'img_size': 1280,
-        'num_classes': 4,
-        'lr': 0.01,
-        'momentum': 0.937,
-        'weight_decay': 0.0005,
-        'multi_scale': True,
-        'use_amp': True,
-        'accumulate': 4,
-        'scheduler': 'cosine'
+        "epochs": 300,
+        "batch_size": 16,
+        "img_size": 1280,
+        "num_classes": 4,
+        "lr": 0.01,
+        "momentum": 0.937,
+        "weight_decay": 0.0005,
+        "multi_scale": True,
+        "use_amp": True,
+        "accumulate": 4,
+        "scheduler": "cosine",
     }
 
     print("YOLOv7 Training Script")
     print("=" * 50)
 
     # Check CUDA
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
     # Create model
     print("\nInitializing model...")
-    model = YOLOv7Detector(
-        img_size=config['img_size'],
-        device=device
-    )
+    model = YOLOv7Detector(img_size=config["img_size"], device=device)
 
     # Create dataloaders
     print("\nCreating dataloaders...")
     try:
         train_loader, val_loader, test_loader = create_dataloaders(
-            dataset_type='detection',
-            data_path='data/debris_detection',
-            batch_size=config['batch_size'],
+            dataset_type="detection",
+            data_path="data/debris_detection",
+            batch_size=config["batch_size"],
             num_workers=4,
-            img_size=config['img_size'],
+            img_size=config["img_size"],
             augment=True,
-            cache_images=False
+            cache_images=False,
         )
         print(f"Train batches: {len(train_loader)}")
         print(f"Val batches: {len(val_loader)}")
@@ -581,14 +554,13 @@ if __name__ == "__main__":
 
         # Create dummy loaders
         from torch.utils.data import TensorDataset
+
         dummy_images = torch.randn(100, 3, 1280, 1280)
         dummy_boxes = [torch.rand(5, 4) for _ in range(100)]
         dummy_labels = [torch.randint(0, 4, (5,)) for _ in range(100)]
 
         train_loader = DataLoader(
-            TensorDataset(dummy_images),
-            batch_size=config['batch_size'],
-            shuffle=True
+            TensorDataset(dummy_images), batch_size=config["batch_size"], shuffle=True
         )
         val_loader = train_loader
 
@@ -600,7 +572,7 @@ if __name__ == "__main__":
         val_loader=val_loader,
         config=config,
         device=device,
-        output_dir='outputs/yolo_training'
+        output_dir="outputs/yolo_training",
     )
 
     # Start training
