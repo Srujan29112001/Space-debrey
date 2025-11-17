@@ -1,0 +1,186 @@
+# Kubernetes Deployment for Space Debris Tracking System
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: space-tracking
+
+---
+# API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: space-tracker-api
+  namespace: space-tracking
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: space-tracker-api
+  template:
+    metadata:
+      labels:
+        app: space-tracker-api
+    spec:
+      containers:
+      - name: api
+        image: space-debris-tracker:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: NEO4J_URI
+          value: "bolt://neo4j:7687"
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+            nvidia.com/gpu: 1
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+            nvidia.com/gpu: 1
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+---
+# API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: space-tracker-api
+  namespace: space-tracking
+spec:
+  type: LoadBalancer
+  selector:
+    app: space-tracker-api
+  ports:
+  - port: 80
+    targetPort: 8000
+    name: http
+
+---
+# Dashboard Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: space-tracker-dashboard
+  namespace: space-tracking
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: space-tracker-dashboard
+  template:
+    metadata:
+      labels:
+        app: space-tracker-dashboard
+    spec:
+      containers:
+      - name: dashboard
+        image: space-debris-tracker:latest
+        command: ["streamlit", "run", "space_debris_tracker/dashboard/app.py"]
+        ports:
+        - containerPort: 8501
+        env:
+        - name: API_URL
+          value: "http://space-tracker-api"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+
+---
+# Dashboard Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: space-tracker-dashboard
+  namespace: space-tracking
+spec:
+  type: LoadBalancer
+  selector:
+    app: space-tracker-dashboard
+  ports:
+  - port: 80
+    targetPort: 8501
+    name: http
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: space-tracker-api-hpa
+  namespace: space-tracking
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: space-tracker-api
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: space-tracker-config
+  namespace: space-tracking
+data:
+  api_config.yaml: |
+    server:
+      host: 0.0.0.0
+      port: 8000
+      workers: 4
+
+    database:
+      neo4j_uri: bolt://neo4j:7687
+      postgres_uri: postgresql://user:pass@postgres:5432/space_tracking
+
+    tracking:
+      update_interval: 60
+      prediction_horizon: 604800
+      collision_threshold: 0.0001
+
+---
+# Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: space-tracker-secrets
+  namespace: space-tracking
+type: Opaque
+stringData:
+  neo4j-password: "change-me-in-production"
+  postgres-password: "change-me-in-production"
+  api-key: "change-me-in-production"

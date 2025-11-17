@@ -1,0 +1,213 @@
+# Space Debris Tracking System Configuration
+
+# System Settings
+system:
+  name: "Space Debris Tracking System"
+  version: "1.0.0"
+  environment: "production"  # development, staging, production
+  debug: false
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  reload: false
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8501"
+
+# Database Configuration
+database:
+  neo4j:
+    uri: "bolt://localhost:7687"
+    user: "neo4j"
+    password: "${NEO4J_PASSWORD}"
+    database: "space_catalog"
+    max_connection_lifetime: 3600
+    max_connection_pool_size: 50
+
+  postgres:
+    host: "localhost"
+    port: 5432
+    database: "space_tracking"
+    user: "spaceuser"
+    password: "${POSTGRES_PASSWORD}"
+    pool_size: 20
+    max_overflow: 10
+
+  redis:
+    host: "localhost"
+    port: 6379
+    db: 0
+    password: "${REDIS_PASSWORD}"
+    max_connections: 100
+
+# Computer Vision Settings
+computer_vision:
+  detector:
+    model: "yolov7"
+    weights_path: "models/yolov7_space_debris.pt"
+    conf_threshold: 0.25
+    iou_threshold: 0.45
+    img_size: 1280
+    device: "cuda"  # cuda, cpu
+
+  tracker:
+    max_age: 70
+    min_hits: 3
+    iou_threshold: 0.3
+
+  dino:
+    model: "dinov2_vitb14"
+    enabled: true
+
+  gaussian_splatting:
+    num_points: 5000
+    optimization_iterations: 100
+    learning_rate: 0.01
+
+# Trajectory Prediction Settings
+trajectory_prediction:
+  pinn:
+    hidden_dims: [256, 512, 512, 256]
+    physics_loss_weight: 0.1
+    learning_rate: 0.0001
+
+  transformer:
+    d_model: 512
+    nhead: 8
+    num_encoder_layers: 6
+    num_decoder_layers: 6
+    dim_feedforward: 2048
+    dropout: 0.1
+
+  mamba:
+    d_model: 512
+    d_state: 128
+    d_conv: 4
+    n_layers: 24
+    seq_len: 10000
+
+  physics:
+    include_j2: true
+    include_drag: true
+    include_solar_pressure: true
+    default_area_to_mass: 0.01  # m^2/kg
+    default_cd: 2.2
+
+# Monitoring Settings
+monitoring:
+  enabled: true
+  update_interval: 60  # seconds
+  conjunction_check_interval: 300  # seconds
+
+  alert_thresholds:
+    collision_probability: 0.0001
+    miss_distance: 1.0  # km
+    time_to_conjunction: 72  # hours
+
+  maneuver_constraints:
+    max_delta_v: 10.0  # m/s
+    min_miss_distance: 5.0  # km
+    lead_time: 3600  # seconds
+
+  observation_scheduler:
+    state_dim: 20
+    action_dim: 10
+    learning_rate: 0.001
+    gamma: 0.99
+    epsilon: 0.1
+
+# MCP (Multi-Agent Communication)
+mcp:
+  broker_url: "tcp://localhost:5555"
+  enable_encryption: true
+  message_queue_size: 10000
+
+# Streaming Data
+streaming:
+  kafka:
+    bootstrap_servers:
+      - "localhost:9092"
+    topics:
+      telescope_images: "telescope-images"
+      radar_data: "radar-data"
+      tle_updates: "tle-updates"
+    consumer_group: "space-tracker"
+
+# API Configuration
+api:
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst: 100
+
+  caching:
+    enabled: true
+    ttl: 300  # seconds
+    backend: "redis"
+
+  authentication:
+    enabled: true
+    jwt_secret: "${JWT_SECRET}"
+    jwt_algorithm: "HS256"
+    access_token_expire_minutes: 30
+
+# Dashboard Configuration
+dashboard:
+  port: 8501
+  update_rate: 1.0  # Hz
+  max_satellites_display: 100
+  default_time_horizon: 7  # days
+
+# Deployment Configuration
+deployment:
+  scaling:
+    min_replicas: 3
+    max_replicas: 20
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+  resources:
+    api:
+      cpu_request: "2"
+      cpu_limit: "4"
+      memory_request: "4Gi"
+      memory_limit: "8Gi"
+      gpu_request: 1
+      gpu_limit: 1
+
+    dashboard:
+      cpu_request: "1"
+      cpu_limit: "2"
+      memory_request: "2Gi"
+      memory_limit: "4Gi"
+
+# Monitoring & Observability
+observability:
+  prometheus:
+    enabled: true
+    port: 9090
+    scrape_interval: 15  # seconds
+
+  grafana:
+    enabled: true
+    port: 3000
+    admin_password: "${GRAFANA_PASSWORD}"
+
+  logging:
+    format: "json"
+    output: "stdout"
+    file: "logs/space_tracker.log"
+    rotation: "daily"
+    retention_days: 30
+
+# Feature Flags
+features:
+  enable_gpu_acceleration: true
+  enable_distributed_training: false
+  enable_auto_maneuver: false  # Requires operator approval
+  enable_ml_inference_cache: true
+  enable_real_time_processing: true

@@ -1,0 +1,217 @@
+# Space Debris Tracking & Autonomous Collision Prediction System
+# Python 3.10+
+
+# ============================================================================
+# DEEP LEARNING FRAMEWORKS
+# ============================================================================
+torch>=2.1.0
+torchvision>=0.16.0
+torchaudio>=2.1.0
+transformers>=4.35.0
+timm>=0.9.12
+accelerate>=0.25.0
+bitsandbytes>=0.41.0
+
+# ============================================================================
+# COMPUTER VISION
+# ============================================================================
+opencv-python>=4.8.1
+opencv-contrib-python>=4.8.1
+ultralytics>=8.0.200  # YOLOv8 (we'll adapt for YOLOv7)
+albumentations>=1.3.1
+Pillow>=10.1.0
+scikit-image>=0.22.0
+
+# Object Tracking
+filterpy>=1.4.5  # Kalman filters for DeepSORT
+scipy>=1.11.4
+scikit-learn>=1.3.2
+
+# 3D Gaussian Splatting
+open3d>=0.17.0
+pytorch3d>=0.7.5
+nerfacc>=0.5.2
+
+# ============================================================================
+# TRAJECTORY PREDICTION & PHYSICS
+# ============================================================================
+# Physics-Informed Neural Networks
+deepxde>=1.10.0
+sympy>=1.12
+
+# Orbital Mechanics
+skyfield>=1.46  # High-precision astronomy
+poliastro>=0.17.0  # Astrodynamics
+astropy>=5.3.4
+sgp4>=2.23  # Satellite propagation
+pyorbital>=1.8.2
+
+# State Space Models (Mamba2)
+mamba-ssm>=1.0.1
+einops>=0.7.0
+
+# ============================================================================
+# GRAPH DATABASE & KNOWLEDGE GRAPH
+# ============================================================================
+neo4j>=5.14.0
+py2neo>=2021.2.3
+networkx>=3.2.1
+graphdatascience>=1.7
+
+# GraphRAG
+langchain>=0.0.340
+llama-index>=0.9.13
+
+# ============================================================================
+# API & WEB FRAMEWORK
+# ============================================================================
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+websockets>=12.0
+python-multipart>=0.0.6
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# GraphQL
+strawberry-graphql[fastapi]>=0.214.0
+graphene>=3.3
+
+# ============================================================================
+# STREAMING & MESSAGE QUEUE
+# ============================================================================
+kafka-python>=2.0.2
+confluent-kafka>=2.3.0
+apache-airflow>=2.7.3
+pyspark>=3.5.0
+
+# ============================================================================
+# MULTI-AGENT SYSTEM & MCP
+# ============================================================================
+# MCP Protocol (Model Context Protocol)
+anthropic>=0.7.0
+openai>=1.3.7
+zmq>=0.0.0  # ZeroMQ for agent communication
+pyzmq>=25.1.1
+
+# Reinforcement Learning
+stable-baselines3>=2.2.1
+gymnasium>=0.29.1
+tensorboard>=2.15.1
+
+# ============================================================================
+# VISUALIZATION & DASHBOARD
+# ============================================================================
+streamlit>=1.28.2
+plotly>=5.18.0
+matplotlib>=3.8.2
+seaborn>=0.13.0
+dash>=2.14.2
+
+# 3D Visualization
+pydeck>=0.8.1b0
+folium>=0.15.0
+
+# ============================================================================
+# DATABASE & STORAGE
+# ============================================================================
+sqlalchemy>=2.0.23
+psycopg2-binary>=2.9.9
+pymongo>=4.6.0
+redis>=5.0.1
+asyncpg>=0.29.0
+
+# Object Storage
+boto3>=1.33.6  # AWS S3
+minio>=7.2.0
+
+# ============================================================================
+# DATA PROCESSING
+# ============================================================================
+numpy>=1.26.2
+pandas>=2.1.3
+xarray>=2023.11.0  # Multi-dimensional arrays
+dask>=2023.11.0  # Parallel computing
+numba>=0.58.1  # JIT compilation
+
+# ============================================================================
+# MONITORING & OBSERVABILITY
+# ============================================================================
+prometheus-client>=0.19.0
+prometheus-fastapi-instrumentator>=6.1.0
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+opentelemetry-instrumentation-fastapi>=0.42b0
+
+# Logging
+loguru>=0.7.2
+structlog>=23.2.0
+
+# ============================================================================
+# DEPLOYMENT & ORCHESTRATION
+# ============================================================================
+kubernetes>=28.1.0
+docker>=6.1.3
+celery>=5.3.4
+flower>=2.0.1  # Celery monitoring
+
+# ============================================================================
+# TESTING & QUALITY
+# ============================================================================
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+httpx>=0.25.2  # Async HTTP for testing
+faker>=20.1.0
+
+# Code Quality
+black>=23.11.0
+flake8>=6.1.0
+mypy>=1.7.1
+isort>=5.12.0
+pylint>=3.0.3
+
+# ============================================================================
+# UTILITIES
+# ============================================================================
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+click>=8.1.7
+tqdm>=4.66.1
+requests>=2.31.0
+aiohttp>=3.9.1
+httpx>=0.25.2
+tenacity>=8.2.3  # Retry logic
+python-dateutil>=2.8.2
+
+# Configuration Management
+hydra-core>=1.3.2
+omegaconf>=2.3.0
+
+# ============================================================================
+# OPTIMIZATION
+# ============================================================================
+optuna>=3.4.0  # Hyperparameter optimization
+ray[tune]>=2.8.1  # Distributed computing
+
+# ============================================================================
+# GEOSPATIAL
+# ============================================================================
+pyproj>=3.6.1
+shapely>=2.0.2
+geopandas>=0.14.1
+
+# ============================================================================
+# IMAGE PROCESSING & AUGMENTATION
+# ============================================================================
+imgaug>=0.4.0
+kornia>=0.7.0  # Differentiable computer vision
+
+# ============================================================================
+# ADDITIONAL ML UTILITIES
+# ============================================================================
+wandb>=0.16.0  # Experiment tracking
+tensorboardX>=2.6.2.2
+hydra-core>=1.3.2
+
+# GPU Acceleration
+cupy-cuda11x>=12.3.0; platform_machine == "x86_64"  # CUDA acceleration
