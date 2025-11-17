@@ -25,9 +25,7 @@ class TestSpaceKnowledgeGraph:
         ) as mock_gdb:
             mock_gdb.driver.return_value = mock_neo4j_driver
 
-            kg = SpaceKnowledgeGraph(
-                uri="bolt://localhost:7687", user="neo4j", password="test"
-            )
+            kg = SpaceKnowledgeGraph(uri="bolt://localhost:7687", user="neo4j", password="test")
 
             assert kg is not None
             assert kg.uri == "bolt://localhost:7687"
@@ -166,9 +164,7 @@ class TestSpaceKnowledgeGraph:
 
             kg = SpaceKnowledgeGraph()
 
-            satellites = kg.get_satellites_in_orbit_range(
-                altitude_min=350.0, altitude_max=450.0
-            )
+            satellites = kg.get_satellites_in_orbit_range(altitude_min=350.0, altitude_max=450.0)
 
             assert isinstance(satellites, list)
 

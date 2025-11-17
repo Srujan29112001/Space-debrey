@@ -49,9 +49,7 @@ class TestDetectionPipeline:
             for i, frame in enumerate(image_sequence):
                 previous_frames = image_sequence[:i] if i > 0 else None
 
-                results = detector.process_telescope_image(
-                    frame, previous_frames=previous_frames
-                )
+                results = detector.process_telescope_image(frame, previous_frames=previous_frames)
 
                 all_results.append(results)
 

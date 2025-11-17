@@ -146,9 +146,7 @@ class YOLOv7Loss(nn.Module):
 
         # Total loss
         total_loss = (
-            self.box_weight * box_loss
-            + self.obj_weight * obj_loss
-            + self.cls_weight * cls_loss
+            self.box_weight * box_loss + self.obj_weight * obj_loss + self.cls_weight * cls_loss
         )
 
         loss_dict = {
@@ -308,9 +306,7 @@ class YOLOv7Trainer:
                 eta_min=self.config.get("lr", 0.01) * 0.01,
             )
         elif scheduler_type == "step":
-            return optim.lr_scheduler.StepLR(
-                self.optimizer, step_size=self.epochs // 3, gamma=0.1
-            )
+            return optim.lr_scheduler.StepLR(self.optimizer, step_size=self.epochs // 3, gamma=0.1)
         else:
             return None
 
@@ -349,9 +345,7 @@ class YOLOv7Trainer:
                 # Reshape predictions for loss
                 # This is simplified - actual YOLOv7 has specific output format
                 batch_size = images.shape[0]
-                predictions = predictions.view(
-                    batch_size, -1, 5 + self.criterion.num_classes
-                )
+                predictions = predictions.view(batch_size, -1, 5 + self.criterion.num_classes)
 
                 # Compute loss
                 loss, loss_dict = self.criterion(predictions, bboxes, labels)
@@ -422,9 +416,7 @@ class YOLOv7Trainer:
                     predictions = self.model(images)
 
                     batch_size = images.shape[0]
-                    predictions = predictions.view(
-                        batch_size, -1, 5 + self.criterion.num_classes
-                    )
+                    predictions = predictions.view(batch_size, -1, 5 + self.criterion.num_classes)
 
                     # Compute loss
                     loss, loss_dict = self.criterion(predictions, bboxes, labels)
@@ -466,9 +458,7 @@ class YOLOv7Trainer:
                     self.writer.add_scalar(f"train/{key}", value, epoch)
                 for key, value in val_metrics.items():
                     self.writer.add_scalar(f"val/{key}", value, epoch)
-                self.writer.add_scalar(
-                    "lr", self.optimizer.param_groups[0]["lr"], epoch
-                )
+                self.writer.add_scalar("lr", self.optimizer.param_groups[0]["lr"], epoch)
 
             # Save checkpoint
             if val_metrics["total_loss"] < self.best_loss:
@@ -491,9 +481,7 @@ class YOLOv7Trainer:
             "epoch": epoch,
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
-            "scheduler_state_dict": (
-                self.scheduler.state_dict() if self.scheduler else None
-            ),
+            "scheduler_state_dict": (self.scheduler.state_dict() if self.scheduler else None),
             "best_loss": self.best_loss,
             "config": self.config,
         }

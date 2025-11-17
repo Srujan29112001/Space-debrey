@@ -434,8 +434,7 @@ class CheckpointManager:
             self.metadata["checkpoints"] = [
                 cp
                 for cp in self.metadata["checkpoints"]
-                if cp.get("is_best", False)
-                or cp in regular_checkpoints[-self.max_checkpoints :]
+                if cp.get("is_best", False) or cp in regular_checkpoints[-self.max_checkpoints :]
             ]
 
     def _compute_model_hash(self, model: nn.Module) -> str:

@@ -138,9 +138,7 @@ class TestPredictionLatency:
         predictor.add_nearby_object(state2)
 
         with Timer() as timer:
-            predictor.predict_trajectory(
-                initial_state=state1, time_horizon=3600, dt=60.0
-            )
+            predictor.predict_trajectory(initial_state=state1, time_horizon=3600, dt=60.0)
 
         print(f"\nCollision assessment latency: {timer.elapsed*1000:.2f}ms")
 
@@ -161,9 +159,7 @@ class TestPredictionLatency:
 
         for _ in range(100):
             with Timer() as timer:
-                mechanics.propagate(
-                    position, velocity, dt=60.0, include_j2=True, include_drag=True
-                )
+                mechanics.propagate(position, velocity, dt=60.0, include_j2=True, include_drag=True)
 
             latencies.append(timer.elapsed)
 
@@ -205,9 +201,7 @@ class TestAPILatency:
     def test_trajectory_request_latency(self, api_test_client):
         """Measure trajectory request latency"""
         with Timer() as timer:
-            response = api_test_client.get(
-                "/api/satellites/25544/trajectory?time_horizon=3600"
-            )
+            response = api_test_client.get("/api/satellites/25544/trajectory?time_horizon=3600")
 
         assert response.status_code == 200
 

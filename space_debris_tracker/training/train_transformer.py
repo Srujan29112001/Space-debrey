@@ -210,12 +210,8 @@ class TransformerTrainer:
 
             # Compute metrics
             with torch.no_grad():
-                position_mae = torch.mean(
-                    torch.abs(predictions[:, :, :3] - target_seq[:, :, :3])
-                )
-                velocity_mae = torch.mean(
-                    torch.abs(predictions[:, :, 3:] - target_seq[:, :, 3:])
-                )
+                position_mae = torch.mean(torch.abs(predictions[:, :, :3] - target_seq[:, :, :3]))
+                velocity_mae = torch.mean(torch.abs(predictions[:, :, 3:] - target_seq[:, :, 3:]))
 
             # Update metrics
             metrics["loss"] += loss.item()
@@ -288,12 +284,8 @@ class TransformerTrainer:
                 loss = self.criterion(predictions, target_seq)
 
                 # Compute detailed metrics
-                position_mae = torch.mean(
-                    torch.abs(predictions[:, :, :3] - target_seq[:, :, :3])
-                )
-                velocity_mae = torch.mean(
-                    torch.abs(predictions[:, :, 3:] - target_seq[:, :, 3:])
-                )
+                position_mae = torch.mean(torch.abs(predictions[:, :, :3] - target_seq[:, :, :3]))
+                velocity_mae = torch.mean(torch.abs(predictions[:, :, 3:] - target_seq[:, :, 3:]))
 
                 position_rmse = torch.sqrt(
                     torch.mean((predictions[:, :, :3] - target_seq[:, :, :3]) ** 2)
@@ -355,12 +347,8 @@ class TransformerTrainer:
                     self.writer.add_scalar(f"train/{key}", value, epoch)
                 for key, value in val_metrics.items():
                     self.writer.add_scalar(f"val/{key}", value, epoch)
-                self.writer.add_scalar(
-                    "teacher_forcing_ratio", self.current_tf_ratio, epoch
-                )
-                self.writer.add_scalar(
-                    "lr", self.optimizer.param_groups[0]["lr"], epoch
-                )
+                self.writer.add_scalar("teacher_forcing_ratio", self.current_tf_ratio, epoch)
+                self.writer.add_scalar("lr", self.optimizer.param_groups[0]["lr"], epoch)
 
             # Save checkpoint
             if val_metrics["loss"] < self.best_val_loss:
@@ -407,9 +395,7 @@ class TransformerTrainer:
         if "scheduler_state_dict" in checkpoint and checkpoint["scheduler_state_dict"]:
             self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
-        self.current_tf_ratio = checkpoint.get(
-            "teacher_forcing_ratio", self.teacher_forcing_ratio
-        )
+        self.current_tf_ratio = checkpoint.get("teacher_forcing_ratio", self.teacher_forcing_ratio)
         self.best_val_loss = checkpoint.get("best_val_loss", float("inf"))
 
         print(f"Checkpoint loaded from {checkpoint_path}")

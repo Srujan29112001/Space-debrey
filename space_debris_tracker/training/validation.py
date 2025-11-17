@@ -69,9 +69,7 @@ class DetectionEvaluator:
             iou_thresholds: IoU thresholds for mAP calculation
         """
         self.num_classes = num_classes
-        self.iou_thresholds = iou_thresholds or [0.5, 0.75] + list(
-            np.arange(0.5, 1.0, 0.05)
-        )
+        self.iou_thresholds = iou_thresholds or [0.5, 0.75] + list(np.arange(0.5, 1.0, 0.05))
 
     def compute_iou(self, boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tensor:
         """
@@ -363,13 +361,9 @@ class TrajectoryEvaluator:
             torch.mean((predictions[:, :, 3:] - targets[:, :, 3:]) ** 2)
         ).item()
 
-        position_mae = torch.mean(
-            torch.abs(predictions[:, :, :3] - targets[:, :, :3])
-        ).item()
+        position_mae = torch.mean(torch.abs(predictions[:, :, :3] - targets[:, :, :3])).item()
 
-        velocity_mae = torch.mean(
-            torch.abs(predictions[:, :, 3:] - targets[:, :, 3:])
-        ).item()
+        velocity_mae = torch.mean(torch.abs(predictions[:, :, 3:] - targets[:, :, 3:])).item()
 
         # RTC errors
         radial, along_track, cross_track = self.compute_rtc_errors(predictions, targets)
@@ -427,9 +421,7 @@ class ConjunctionEvaluator:
 
         return ece
 
-    def compute_brier_score(
-        self, predicted_probs: np.ndarray, true_labels: np.ndarray
-    ) -> float:
+    def compute_brier_score(self, predicted_probs: np.ndarray, true_labels: np.ndarray) -> float:
         """
         Compute Brier score
 
@@ -564,9 +556,7 @@ if __name__ == "__main__":
             torch.tensor([0, 1]),
         )
     ]
-    ground_truths = [
-        (torch.tensor([[12, 12, 48, 48], [58, 58, 98, 98]]), torch.tensor([0, 1]))
-    ]
+    ground_truths = [(torch.tensor([[12, 12, 48, 48], [58, 58, 98, 98]]), torch.tensor([0, 1]))]
 
     det_metrics = det_eval.evaluate(predictions, ground_truths)
     print(f"  Precision: {det_metrics.precision:.3f}")

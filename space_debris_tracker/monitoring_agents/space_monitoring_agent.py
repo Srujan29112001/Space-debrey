@@ -58,9 +58,7 @@ class SpaceMonitoringAgent:
         self.alert_thresholds = {
             "collision_probability": operator_preferences.get("prob_threshold", 0.0001),
             "miss_distance": operator_preferences.get("distance_threshold", 1.0),  # km
-            "time_to_conjunction": operator_preferences.get(
-                "time_threshold", 72
-            ),  # hours
+            "time_to_conjunction": operator_preferences.get("time_threshold", 72),  # hours
         }
 
         # State
@@ -123,16 +121,13 @@ class SpaceMonitoringAgent:
                 # 7. Generate alerts if needed
                 for conjunction in conjunctions:
                     if self.should_alert(conjunction):
-                        await self.alert_system.send_alert(
-                            conjunction, collaborative_assessment
-                        )
+                        await self.alert_system.send_alert(conjunction, collaborative_assessment)
 
                 # 8. Recommend avoidance maneuvers
                 high_risk = [
                     c
                     for c in conjunctions
-                    if c["collision_probability"]
-                    > self.alert_thresholds["collision_probability"]
+                    if c["collision_probability"] > self.alert_thresholds["collision_probability"]
                 ]
 
                 if high_risk:
@@ -160,9 +155,7 @@ class SpaceMonitoringAgent:
             "timestamp": datetime.utcnow().isoformat(),
         }
 
-    async def scan_nearby_space(
-        self, position: np.ndarray, radius: float
-    ) -> List[Dict]:
+    async def scan_nearby_space(self, position: np.ndarray, radius: float) -> List[Dict]:
         """
         Scan for nearby objects
 
@@ -193,9 +186,7 @@ class SpaceMonitoringAgent:
 
         return nearby
 
-    async def predict_conjunction(
-        self, sat_id: int, obj_id: str, time_horizon: float
-    ) -> Dict:
+    async def predict_conjunction(self, sat_id: int, obj_id: str, time_horizon: float) -> Dict:
         """
         Predict conjunction between satellite and object
 
@@ -317,26 +308,18 @@ class SpaceMonitoringAgent:
             True if alert should be sent
         """
         # Check thresholds
-        if (
-            conjunction["collision_probability"]
-            > self.alert_thresholds["collision_probability"]
-        ):
+        if conjunction["collision_probability"] > self.alert_thresholds["collision_probability"]:
             return True
 
         if conjunction["miss_distance"] < self.alert_thresholds["miss_distance"]:
             return True
 
-        if (
-            conjunction["time_to_tca"] / 3600
-            < self.alert_thresholds["time_to_conjunction"]
-        ):
+        if conjunction["time_to_tca"] / 3600 < self.alert_thresholds["time_to_conjunction"]:
             return True
 
         return False
 
-    async def calculate_avoidance_maneuver(
-        self, conjunction: Dict, constraints: Dict
-    ) -> Dict:
+    async def calculate_avoidance_maneuver(self, conjunction: Dict, constraints: Dict) -> Dict:
         """
         Calculate optimal avoidance maneuver
 
@@ -385,9 +368,7 @@ class SpaceMonitoringAgent:
             ),
             "execution_time": conjunction["tca"],  # Execute before TCA
             "lead_time": constraints.get("lead_time", 3600),  # seconds before TCA
-            "estimated_fuel_cost": float(
-                np.linalg.norm(delta_v) * 0.1
-            ),  # kg (simplified)
+            "estimated_fuel_cost": float(np.linalg.norm(delta_v) * 0.1),  # kg (simplified)
             "confidence": 0.95 if result.success else 0.5,
             "success": result.success,
         }

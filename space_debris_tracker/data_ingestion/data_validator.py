@@ -110,9 +110,7 @@ class DataValidator:
             <= elements["semi_major_axis"]
             <= self.config["semi_major_axis_max"]
         ):
-            errors.append(
-                f"Semi-major axis out of range: {elements['semi_major_axis']:.1f} km"
-            )
+            errors.append(f"Semi-major axis out of range: {elements['semi_major_axis']:.1f} km")
 
         if not (
             self.config["eccentricity_min"]
@@ -143,9 +141,7 @@ class DataValidator:
         if perigee < -100:  # Allow some margin for decay
             errors.append(f"Perigee below Earth surface: {perigee:.1f} km")
         elif perigee < 100:
-            warnings.append(
-                f"Very low perigee (rapid decay expected): {perigee:.1f} km"
-            )
+            warnings.append(f"Very low perigee (rapid decay expected): {perigee:.1f} km")
 
         # Check epoch if provided
         if "epoch" in elements:
@@ -207,14 +203,10 @@ class DataValidator:
         pos_magnitude = np.linalg.norm(position)
         vel_magnitude = np.linalg.norm(velocity)
 
-        if not (
-            self.config["position_min"] <= pos_magnitude <= self.config["position_max"]
-        ):
+        if not (self.config["position_min"] <= pos_magnitude <= self.config["position_max"]):
             errors.append(f"Position magnitude out of range: {pos_magnitude:.1f} km")
 
-        if not (
-            self.config["velocity_min"] <= vel_magnitude <= self.config["velocity_max"]
-        ):
+        if not (self.config["velocity_min"] <= vel_magnitude <= self.config["velocity_max"]):
             errors.append(f"Velocity magnitude out of range: {vel_magnitude:.3f} km/s")
 
         # Check if orbit is bound (negative total energy)
@@ -233,9 +225,7 @@ class DataValidator:
         if altitude < 100:
             errors.append(f"Object below atmosphere boundary: {altitude:.1f} km")
         elif altitude < 200:
-            warnings.append(
-                f"Object in upper atmosphere (rapid decay): {altitude:.1f} km"
-            )
+            warnings.append(f"Object in upper atmosphere (rapid decay): {altitude:.1f} km")
 
         is_valid = len(errors) == 0
 
@@ -376,9 +366,7 @@ class DataValidator:
 
         # Validate range rate
         range_rate = radar_data["range_rate"]
-        if not (
-            self.config["range_rate_min"] <= range_rate <= self.config["range_rate_max"]
-        ):
+        if not (self.config["range_rate_min"] <= range_rate <= self.config["range_rate_max"]):
             errors.append(f"Range rate out of bounds: {range_rate:.3f} km/s")
 
         # Validate angles
@@ -415,9 +403,7 @@ class DataValidator:
 
             age = datetime.utcnow() - timestamp
             if age.total_seconds() > 3600 * self.config["max_age_hours"]:
-                warnings.append(
-                    f"Old radar data: {age.total_seconds()/3600:.1f} hours old"
-                )
+                warnings.append(f"Old radar data: {age.total_seconds()/3600:.1f} hours old")
         except Exception as e:
             errors.append(f"Invalid timestamp: {e}")
 
@@ -430,9 +416,7 @@ class DataValidator:
             normalized_data=radar_data if is_valid else None,
         )
 
-    def validate_batch(
-        self, data_list: List[Dict], data_type: str
-    ) -> Tuple[List[Dict], List[str]]:
+    def validate_batch(self, data_list: List[Dict], data_type: str) -> Tuple[List[Dict], List[str]]:
         """
         Validate batch of data
 

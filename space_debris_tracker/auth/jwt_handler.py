@@ -41,9 +41,7 @@ class JWTHandler:
             algorithm: JWT algorithm
             access_token_expire_minutes: Token expiration time
         """
-        self.secret_key = secret_key or os.getenv(
-            "JWT_SECRET_KEY", "your-secret-key-change-me"
-        )
+        self.secret_key = secret_key or os.getenv("JWT_SECRET_KEY", "your-secret-key-change-me")
         self.algorithm = algorithm
         self.access_token_expire_minutes = access_token_expire_minutes
 
@@ -69,9 +67,7 @@ class JWTHandler:
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(
-                minutes=self.access_token_expire_minutes
-            )
+            expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
 
         payload = {
             "user_id": user_id,

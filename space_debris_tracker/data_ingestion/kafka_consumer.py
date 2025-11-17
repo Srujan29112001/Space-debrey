@@ -148,9 +148,7 @@ class TelescopeImageConsumer:
                         )
 
                         # Process in thread pool
-                        future = self.executor.submit(
-                            self._process_message, record.value
-                        )
+                        future = self.executor.submit(self._process_message, record.value)
                         future.add_done_callback(self._process_callback)
 
             except KafkaError as e:
@@ -211,8 +209,7 @@ class TelescopeImageConsumer:
             self.stats["messages_processed"] += 1
 
             logger.debug(
-                f"Processed telescope image from {telescope_id} "
-                f"in {processing_time:.3f}s"
+                f"Processed telescope image from {telescope_id} " f"in {processing_time:.3f}s"
             )
 
             return telescope_image
@@ -355,9 +352,7 @@ class RadarDataConsumer:
                         self.stats["messages_received"] += 1
 
                         # Process in thread pool
-                        future = self.executor.submit(
-                            self._process_message, record.value
-                        )
+                        future = self.executor.submit(self._process_message, record.value)
                         future.add_done_callback(self._process_callback)
 
             except KafkaError as e:
@@ -431,9 +426,7 @@ if __name__ == "__main__":
     telescope_consumer.start()
 
     # Radar data consumer
-    radar_consumer = RadarDataConsumer(
-        bootstrap_servers=["localhost:9092"], topic="radar-returns"
-    )
+    radar_consumer = RadarDataConsumer(bootstrap_servers=["localhost:9092"], topic="radar-returns")
 
     def process_radar_return(radar: RadarReturn):
         print(f"Received radar return from {radar.radar_id} at {radar.timestamp}")

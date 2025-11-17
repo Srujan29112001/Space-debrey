@@ -116,9 +116,7 @@ class TestRESTAPI:
 
     def test_get_debris_population(self, client):
         """Test GET /debris/population"""
-        response = client.get(
-            "/api/debris/population?altitude_min=300&altitude_max=500"
-        )
+        response = client.get("/api/debris/population?altitude_min=300&altitude_max=500")
 
         assert response.status_code == 200
         data = response.json()
@@ -157,9 +155,7 @@ class TestRESTAPI:
 
     def test_invalid_request_format(self, client):
         """Test invalid request handling"""
-        response = client.post(
-            "/api/conjunctions/assess", json={"invalid_field": "test"}
-        )
+        response = client.post("/api/conjunctions/assess", json={"invalid_field": "test"})
 
         # Should return 422 (validation error)
         assert response.status_code in [400, 422]
@@ -348,9 +344,7 @@ class TestAPIAuthentication:
         # Mock JWT token
         token = "mock_jwt_token"
 
-        response = client.get(
-            "/api/satellites", headers={"Authorization": f"Bearer {token}"}
-        )
+        response = client.get("/api/satellites", headers={"Authorization": f"Bearer {token}"})
 
         # Should process request
         assert response.status_code in [200, 401, 403]

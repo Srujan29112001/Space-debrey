@@ -47,9 +47,7 @@ class DeepEnsemble:
             if m.bias is not None:
                 torch.nn.init.zeros_(m.bias)
 
-    def estimate(
-        self, initial_state: torch.Tensor, time_steps: np.ndarray
-    ) -> torch.Tensor:
+    def estimate(self, initial_state: torch.Tensor, time_steps: np.ndarray) -> torch.Tensor:
         """
         Estimate uncertainty using ensemble
 
@@ -104,9 +102,7 @@ if __name__ == "__main__":
     from space_debris_tracker.trajectory_prediction.pinn import PhysicsInformedNN
 
     # Create base model
-    base_model = PhysicsInformedNN(
-        input_dim=7, hidden_dims=[128, 256, 128], output_dim=6
-    )
+    base_model = PhysicsInformedNN(input_dim=7, hidden_dims=[128, 256, 128], output_dim=6)
 
     # Create ensemble
     ensemble = DeepEnsemble(base_model, n_models=5)

@@ -137,9 +137,7 @@ class UnifiedTrainer:
         # Model
         self.model = model.to(device)
         if use_ddp:
-            self.model = DDP(
-                self.model, device_ids=[local_rank], output_device=local_rank
-            )
+            self.model = DDP(self.model, device_ids=[local_rank], output_device=local_rank)
 
         # Data
         self.train_loader = train_loader
@@ -349,9 +347,7 @@ class UnifiedTrainer:
 
             # Update progress bar
             if self.is_main_process:
-                pbar.set_postfix(
-                    {"loss": loss.item() * self.gradient_accumulation_steps}
-                )
+                pbar.set_postfix({"loss": loss.item() * self.gradient_accumulation_steps})
 
         # Average loss
         avg_loss = total_loss / n_batches
@@ -460,13 +456,10 @@ class UnifiedTrainer:
         """Move batch to device"""
         if isinstance(batch, dict):
             return {
-                k: v.to(self.device) if isinstance(v, torch.Tensor) else v
-                for k, v in batch.items()
+                k: v.to(self.device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()
             }
         elif isinstance(batch, (list, tuple)):
-            return [
-                v.to(self.device) if isinstance(v, torch.Tensor) else v for v in batch
-            ]
+            return [v.to(self.device) if isinstance(v, torch.Tensor) else v for v in batch]
         elif isinstance(batch, torch.Tensor):
             return batch.to(self.device)
         else:
@@ -587,12 +580,8 @@ if __name__ == "__main__":
         x, y = zip(*batch)
         return {"input": torch.stack(x), "target": torch.stack(y)}
 
-    train_loader = DataLoader(
-        train_dataset, batch_size=32, shuffle=True, collate_fn=collate_fn
-    )
-    val_loader = DataLoader(
-        val_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn
-    )
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, collate_fn=collate_fn)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
 
     # Create model
     model = ExampleModel()

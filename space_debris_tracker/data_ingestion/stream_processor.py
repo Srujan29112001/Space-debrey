@@ -156,15 +156,11 @@ class StreamProcessor:
         while self._running:
             try:
                 # Collect batch
-                timeout = (
-                    self.batch_timeout_ms - (time.time() - last_batch_time) * 1000
-                ) / 1000
+                timeout = (self.batch_timeout_ms - (time.time() - last_batch_time) * 1000) / 1000
 
                 if timeout > 0:
                     try:
-                        event = await asyncio.wait_for(
-                            self.input_queue.get(), timeout=timeout
-                        )
+                        event = await asyncio.wait_for(self.input_queue.get(), timeout=timeout)
                         batch.append(event)
                     except asyncio.TimeoutError:
                         pass
@@ -377,9 +373,7 @@ class StreamProcessor:
             "total_events": self.metrics.total_events,
             "processed_events": self.metrics.processed_events,
             "failed_events": self.metrics.failed_events,
-            "success_rate": (
-                self.metrics.processed_events / max(self.metrics.total_events, 1)
-            ),
+            "success_rate": (self.metrics.processed_events / max(self.metrics.total_events, 1)),
             "avg_latency_ms": self.metrics.avg_latency_ms,
             "throughput_eps": self.metrics.throughput_eps,
             "last_update": self.metrics.last_update.isoformat(),
@@ -421,9 +415,7 @@ async def main():
     logging.basicConfig(level=logging.INFO)
 
     # Create processor
-    processor = StreamProcessor(
-        max_queue_size=10000, batch_size=50, batch_timeout_ms=100
-    )
+    processor = StreamProcessor(max_queue_size=10000, batch_size=50, batch_timeout_ms=100)
 
     # Register components
     processor.register_processor(deduplicate_processor)

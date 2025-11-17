@@ -27,9 +27,7 @@ class TrajectoryRequest(BaseModel):
     """Trajectory prediction request"""
 
     norad_id: int
-    time_horizon: int = Field(
-        default=86400, description="Prediction horizon in seconds"
-    )
+    time_horizon: int = Field(default=86400, description="Prediction horizon in seconds")
     dt: float = Field(default=60.0, description="Time step in seconds")
     include_uncertainty: bool = True
 

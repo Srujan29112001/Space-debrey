@@ -263,9 +263,7 @@ class TestDetectionDataclass:
 
     def test_detection_creation(self):
         """Test creating Detection"""
-        det = Detection(
-            bbox=(100, 100, 200, 200), confidence=0.95, class_id=0, class_name="debris"
-        )
+        det = Detection(bbox=(100, 100, 200, 200), confidence=0.95, class_id=0, class_name="debris")
 
         assert det.bbox == (100, 100, 200, 200)
         assert det.confidence == 0.95

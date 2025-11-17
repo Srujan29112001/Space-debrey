@@ -329,9 +329,7 @@ class TestMCPProtocol:
             mock_response.json = AsyncMock(return_value={"status": "success"})
             mock_post.return_value.__aenter__.return_value = mock_response
 
-            result = await client.send_request(
-                {"type": "analyze", "data": {"satellite_id": 25544}}
-            )
+            result = await client.send_request({"type": "analyze", "data": {"satellite_id": 25544}})
 
             assert result is not None or True
 
@@ -341,8 +339,6 @@ class TestMCPProtocol:
 
         client = MCPClient(endpoint="http://localhost:8000")
 
-        message = client.format_message(
-            message_type="request", content={"data": "test"}
-        )
+        message = client.format_message(message_type="request", content={"data": "test"})
 
         assert isinstance(message, dict) or isinstance(message, str)
