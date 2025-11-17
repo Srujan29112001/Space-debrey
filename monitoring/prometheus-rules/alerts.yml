@@ -1,0 +1,288 @@
+groups:
+  - name: space_debris_alerts
+    interval: 15s
+    rules:
+      # =======================================================================
+      # CRITICAL ALERTS - Immediate Action Required
+      # =======================================================================
+
+      - alert: HighRiskConjunctionDetected
+        expr: conjunction_probability > 0.001
+        for: 1m
+        labels:
+          severity: critical
+          component: trajectory-prediction
+        annotations:
+          summary: "Critical collision risk detected"
+          description: "Conjunction probability {{ $value }} exceeds critical threshold (0.001) for {{ $labels.primary_object }} and {{ $labels.secondary_object }}"
+
+      - alert: GPUMemoryExhausted
+        expr: DCGM_FI_DEV_FB_FREE < 1073741824  # Less than 1GB free
+        for: 2m
+        labels:
+          severity: critical
+          component: hardware
+        annotations:
+          summary: "GPU memory critically low"
+          description: "GPU {{ $labels.gpu }} has only {{ $value | humanize1024 }} free memory remaining"
+
+      - alert: APIServerDown
+        expr: up{job="space-tracker-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API server is down"
+          description: "The Space Debris Tracking API server has been unreachable for more than 1 minute"
+
+      - alert: Neo4jDatabaseDown
+        expr: up{job="neo4j"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Neo4j database is down"
+          description: "Neo4j graph database has been unavailable for more than 2 minutes"
+
+      # =======================================================================
+      # HIGH PRIORITY ALERTS - Urgent Investigation
+      # =======================================================================
+
+      - alert: HighDetectionLatency
+        expr: rate(detection_latency_seconds_sum[5m]) / rate(detection_latency_seconds_count[5m]) > 5
+        for: 5m
+        labels:
+          severity: high
+          component: computer-vision
+        annotations:
+          summary: "Detection latency exceeds threshold"
+          description: "Average detection latency is {{ $value }}s (threshold: 5s) over the last 5 minutes"
+
+      - alert: PredictionLatencyHigh
+        expr: rate(prediction_latency_seconds_sum[5m]) / rate(prediction_latency_seconds_count[5m]) > 10
+        for: 5m
+        labels:
+          severity: high
+          component: trajectory-prediction
+        annotations:
+          summary: "Prediction latency exceeds threshold"
+          description: "Average trajectory prediction latency is {{ $value }}s (threshold: 10s)"
+
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_lag_seconds > 300
+        for: 5m
+        labels:
+          severity: high
+          component: streaming
+        annotations:
+          summary: "Kafka consumer lag increasing"
+          description: "Consumer lag for topic {{ $labels.topic }} is {{ $value }}s behind (threshold: 300s)"
+
+      - alert: DetectionAccuracyDrop
+        expr: detection_map < 0.85
+        for: 10m
+        labels:
+          severity: high
+          component: computer-vision
+        annotations:
+          summary: "Detection accuracy has dropped"
+          description: "Mean Average Precision (mAP) has dropped to {{ $value }} (threshold: 0.85)"
+
+      - alert: GPUUtilizationLow
+        expr: avg(DCGM_FI_DEV_GPU_UTIL) < 20
+        for: 15m
+        labels:
+          severity: warning
+          component: hardware
+        annotations:
+          summary: "GPU underutilized"
+          description: "Average GPU utilization is {{ $value }}% - may indicate processing issues"
+
+      # =======================================================================
+      # MEDIUM PRIORITY ALERTS - Investigation Needed
+      # =======================================================================
+
+      - alert: MediumRiskConjunction
+        expr: conjunction_probability > 0.0001 and conjunction_probability <= 0.001
+        for: 5m
+        labels:
+          severity: medium
+          component: trajectory-prediction
+        annotations:
+          summary: "Medium risk conjunction detected"
+          description: "Conjunction probability {{ $value }} for {{ $labels.primary_object }} and {{ $labels.secondary_object }}"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: medium
+          component: infrastructure
+        annotations:
+          summary: "System memory running low"
+          description: "Available memory is {{ $value | humanizePercentage }} of total"
+
+      - alert: HighCPUUsage
+        expr: (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 0.8
+        for: 10m
+        labels:
+          severity: medium
+          component: infrastructure
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value | humanizePercentage }} (threshold: 80%)"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.15
+        for: 10m
+        labels:
+          severity: medium
+          component: infrastructure
+        annotations:
+          summary: "Disk space running low"
+          description: "Disk {{ $labels.mountpoint }} has {{ $value | humanizePercentage }} space remaining"
+
+      - alert: RedisConnectionErrors
+        expr: rate(redis_connection_errors_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: medium
+          component: cache
+        annotations:
+          summary: "Redis connection errors increasing"
+          description: "{{ $value }} Redis connection errors per second"
+
+      # =======================================================================
+      # LOW PRIORITY ALERTS - Informational
+      # =======================================================================
+
+      - alert: LowRiskConjunction
+        expr: conjunction_probability > 0.00001 and conjunction_probability <= 0.0001
+        for: 15m
+        labels:
+          severity: low
+          component: trajectory-prediction
+        annotations:
+          summary: "Low risk conjunction detected"
+          description: "Conjunction probability {{ $value }} for {{ $labels.primary_object }} and {{ $labels.secondary_object }}"
+
+      - alert: ModelRetrainingRecommended
+        expr: days_since_last_training > 30
+        for: 1h
+        labels:
+          severity: low
+          component: ml-models
+        annotations:
+          summary: "Model retraining recommended"
+          description: "{{ $labels.model_name }} has not been retrained for {{ $value }} days"
+
+      - alert: APIRateLimitApproaching
+        expr: rate(api_requests_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: low
+          component: api
+        annotations:
+          summary: "API rate limit approaching"
+          description: "Request rate is {{ $value }} req/s (limit: 60 req/s)"
+
+      # =======================================================================
+      # PERFORMANCE ALERTS
+      # =======================================================================
+
+      - alert: TrackingLossRateHigh
+        expr: rate(tracking_lost_total[5m]) / rate(tracking_detected_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: medium
+          component: computer-vision
+        annotations:
+          summary: "High tracking loss rate"
+          description: "{{ $value | humanizePercentage }} of tracks are being lost"
+
+      - alert: FalsePositiveRateHigh
+        expr: false_positive_rate > 0.15
+        for: 10m
+        labels:
+          severity: medium
+          component: computer-vision
+        annotations:
+          summary: "False positive rate exceeds threshold"
+          description: "False positive rate is {{ $value | humanizePercentage }} (threshold: 15%)"
+
+      - alert: UncertaintyTooHigh
+        expr: avg(prediction_uncertainty) > 10
+        for: 10m
+        labels:
+          severity: medium
+          component: trajectory-prediction
+        annotations:
+          summary: "Prediction uncertainty is high"
+          description: "Average prediction uncertainty is {{ $value }}km (threshold: 10km)"
+
+      # =======================================================================
+      # INFRASTRUCTURE ALERTS
+      # =======================================================================
+
+      - alert: ContainerRestartingFrequently
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: medium
+          component: kubernetes
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} has restarted {{ $value }} times"
+
+      - alert: PodNotReady
+        expr: kube_pod_status_phase{phase!="Running"} > 0
+        for: 5m
+        labels:
+          severity: medium
+          component: kubernetes
+        annotations:
+          summary: "Pod not in Running state"
+          description: "Pod {{ $labels.pod }} is in {{ $labels.phase }} state"
+
+      - alert: HPAMaxReplicasReached
+        expr: kube_hpa_status_current_replicas >= kube_hpa_spec_max_replicas
+        for: 10m
+        labels:
+          severity: high
+          component: kubernetes
+        annotations:
+          summary: "HPA at maximum replicas"
+          description: "HPA {{ $labels.hpa }} has reached maximum replicas ({{ $value }})"
+
+  # =============================================================================
+  # RECORDING RULES - Pre-computed Metrics
+  # =============================================================================
+
+  - name: space_debris_recording_rules
+    interval: 30s
+    rules:
+      - record: job:detection_latency_seconds:mean5m
+        expr: rate(detection_latency_seconds_sum[5m]) / rate(detection_latency_seconds_count[5m])
+
+      - record: job:prediction_latency_seconds:mean5m
+        expr: rate(prediction_latency_seconds_sum[5m]) / rate(prediction_latency_seconds_count[5m])
+
+      - record: job:api_request_rate:sum5m
+        expr: sum(rate(api_requests_total[5m])) by (endpoint, method)
+
+      - record: job:gpu_utilization:avg
+        expr: avg(DCGM_FI_DEV_GPU_UTIL)
+
+      - record: job:gpu_memory_used:sum
+        expr: sum(DCGM_FI_DEV_FB_USED)
+
+      - record: job:conjunctions_by_risk:count
+        expr: count(conjunction_probability) by (risk_level)
+
+      - record: job:detection_accuracy:mean
+        expr: avg(detection_map)
+
+      - record: job:tracking_success_rate:ratio
+        expr: rate(tracking_tracked_total[5m]) / (rate(tracking_tracked_total[5m]) + rate(tracking_lost_total[5m]))
