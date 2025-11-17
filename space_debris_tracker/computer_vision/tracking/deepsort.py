@@ -208,9 +208,7 @@ class DeepSORTTracker:
         # Return confirmed tracks
         return [t for t in self.tracks if t.hits >= self.n_init]
 
-    def _match(
-        self, detections: List
-    ) -> Tuple[List[Tuple[int, int]], List[int], List[int]]:
+    def _match(self, detections: List) -> Tuple[List[Tuple[int, int]], List[int], List[int]]:
         """
         Match detections to existing tracks
 

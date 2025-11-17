@@ -162,9 +162,7 @@ def create_app() -> FastAPI:
                         print(f"Error getting state for {sat_id}: {e}")
 
                 # Send updates
-                await manager.send_json(
-                    {"type": "position_update", "data": updates}, websocket
-                )
+                await manager.send_json({"type": "position_update", "data": updates}, websocket)
 
                 # Wait based on update rate
                 await asyncio.sleep(1.0 / update_rate)

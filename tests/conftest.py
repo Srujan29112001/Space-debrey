@@ -61,20 +61,12 @@ def sample_tle_file(test_data_dir, sample_tle_lines) -> Path:
 
         # Add a few more satellites
         f.write("NOAA 15\n")
-        f.write(
-            "1 25338U 98030A   23001.00000000  .00000050  00000-0  44814-4 0  9991\n"
-        )
-        f.write(
-            "2 25338  98.7139 332.8019 0010571  72.5356 287.7187 14.26017399000000\n"
-        )
+        f.write("1 25338U 98030A   23001.00000000  .00000050  00000-0  44814-4 0  9991\n")
+        f.write("2 25338  98.7139 332.8019 0010571  72.5356 287.7187 14.26017399000000\n")
 
         f.write("HUBBLE SPACE TELESCOPE\n")
-        f.write(
-            "1 20580U 90037B   23001.00000000  .00001363  00000-0  73063-4 0  9999\n"
-        )
-        f.write(
-            "2 20580  28.4714 261.5419 0002713 330.7671  29.3086 15.09726543000003\n"
-        )
+        f.write("1 20580U 90037B   23001.00000000  .00001363  00000-0  73063-4 0  9999\n")
+        f.write("2 20580  28.4714 261.5419 0002713 330.7671  29.3086 15.09726543000003\n")
 
     return tle_file
 
@@ -163,9 +155,7 @@ def image_sequence(sample_telescope_image) -> List[np.ndarray]:
 def sample_state_vector() -> np.ndarray:
     """Sample state vector [x, y, z, vx, vy, vz]"""
     # ISS-like orbit
-    return np.array(
-        [6778.0, 0.0, 0.0, 0.0, 7.66, 0.0]  # Position (km)  # Velocity (km/s)
-    )
+    return np.array([6778.0, 0.0, 0.0, 0.0, 7.66, 0.0])  # Position (km)  # Velocity (km/s)
 
 
 @pytest.fixture

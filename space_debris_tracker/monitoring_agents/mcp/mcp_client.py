@@ -99,9 +99,7 @@ class MCPClient:
             # Non-blocking receive with timeout
             while True:
                 try:
-                    msg_bytes = await asyncio.wait_for(
-                        self.subscriber.recv(), timeout=timeout
-                    )
+                    msg_bytes = await asyncio.wait_for(self.subscriber.recv(), timeout=timeout)
 
                     message = json.loads(msg_bytes.decode("utf-8"))
 

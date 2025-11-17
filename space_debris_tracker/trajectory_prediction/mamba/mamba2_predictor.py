@@ -144,10 +144,7 @@ class Mamba2Predictor(nn.Module):
 
         # Mamba blocks
         self.layers = nn.ModuleList(
-            [
-                S6Block(d_model=d_model, d_state=d_state, d_conv=d_conv)
-                for _ in range(n_layers)
-            ]
+            [S6Block(d_model=d_model, d_state=d_state, d_conv=d_conv) for _ in range(n_layers)]
         )
 
         # Output projection
@@ -184,9 +181,7 @@ class Mamba2Predictor(nn.Module):
 
 if __name__ == "__main__":
     # Test Mamba2
-    model = Mamba2Predictor(
-        d_model=512, d_state=128, d_conv=4, n_layers=12, seq_len=10000
-    )
+    model = Mamba2Predictor(d_model=512, d_state=128, d_conv=4, n_layers=12, seq_len=10000)
 
     print(f"Mamba2 Predictor:")
     print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")

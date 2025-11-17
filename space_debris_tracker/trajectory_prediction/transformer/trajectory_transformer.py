@@ -16,9 +16,7 @@ class PositionalEncoding(nn.Module):
         super().__init__()
 
         position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(
-            torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model)
-        )
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
 
         pe = torch.zeros(max_len, 1, d_model)
         pe[:, 0, 0::2] = torch.sin(position * div_term)
@@ -115,9 +113,7 @@ class TrajectoryTransformer(nn.Module):
 
 if __name__ == "__main__":
     # Test transformer
-    model = TrajectoryTransformer(
-        d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6
-    )
+    model = TrajectoryTransformer(d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6)
 
     print(f"Trajectory Transformer:")
     print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")

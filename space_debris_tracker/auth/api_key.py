@@ -171,9 +171,7 @@ class APIKeyManager:
             key_id: {
                 **asdict(key_obj),
                 "created_at": key_obj.created_at.isoformat(),
-                "expires_at": (
-                    key_obj.expires_at.isoformat() if key_obj.expires_at else None
-                ),
+                "expires_at": (key_obj.expires_at.isoformat() if key_obj.expires_at else None),
             }
             for key_id, key_obj in self.api_keys.items()
         }

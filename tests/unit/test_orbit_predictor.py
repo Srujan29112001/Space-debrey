@@ -351,10 +351,7 @@ class TestUncertaintyEstimation:
         )
 
         # If both have uncertainty, long-term should have higher uncertainty
-        if (
-            pred_short["uncertainty"] is not None
-            and pred_long["uncertainty"] is not None
-        ):
+        if pred_short["uncertainty"] is not None and pred_long["uncertainty"] is not None:
             unc_short_final = np.mean(pred_short["uncertainty"][-1])
             unc_long_final = np.mean(pred_long["uncertainty"][-1])
 

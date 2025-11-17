@@ -113,9 +113,7 @@ class SpaceDebrisDashboard:
 
             # Time range
             st.subheader("⏰ Time Range")
-            time_range = st.slider(
-                "Prediction Horizon (days)", min_value=1, max_value=30, value=7
-            )
+            time_range = st.slider("Prediction Horizon (days)", min_value=1, max_value=30, value=7)
 
             # Risk thresholds
             st.subheader("⚠️ Risk Thresholds")
@@ -324,9 +322,7 @@ class SpaceDebrisDashboard:
             )
         )
 
-        fig.update_layout(
-            height=400, yaxis_title="Number of Conjunctions", hovermode="x unified"
-        )
+        fig.update_layout(height=400, yaxis_title="Number of Conjunctions", hovermode="x unified")
 
         st.plotly_chart(fig, use_container_width=True)
 

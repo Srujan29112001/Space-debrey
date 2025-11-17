@@ -75,9 +75,7 @@ class OrbitalMechanics:
 
         # Atmospheric drag
         if include_drag:
-            a_drag = self.calculate_drag_acceleration(
-                position, velocity, area_to_mass, Cd
-            )
+            a_drag = self.calculate_drag_acceleration(position, velocity, area_to_mass, Cd)
             acceleration += a_drag
 
         # Solar radiation pressure
@@ -86,9 +84,7 @@ class OrbitalMechanics:
             acceleration += a_solar
 
         # Integrate using RK4
-        new_position, new_velocity = self._rk4_step(
-            position, velocity, acceleration, dt_sec
-        )
+        new_position, new_velocity = self._rk4_step(position, velocity, acceleration, dt_sec)
 
         return new_position, new_velocity
 

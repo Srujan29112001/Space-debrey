@@ -21,9 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.group()
-@click.option(
-    "--config", "-c", type=click.Path(exists=True), help="Path to configuration file"
-)
+@click.option("--config", "-c", type=click.Path(exists=True), help="Path to configuration file")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--quiet", "-q", is_flag=True, help="Quiet mode")
 @click.pass_context
@@ -70,9 +68,7 @@ def data():
     required=True,
     help="TLE data source",
 )
-@click.option(
-    "--output", "-o", type=click.Path(), required=True, help="Output file path"
-)
+@click.option("--output", "-o", type=click.Path(), required=True, help="Output file path")
 @click.option("--catalog", type=str, help="Satellite catalog (e.g., active, debris)")
 @click.option("--norad-id", type=int, help="Specific NORAD ID to fetch")
 @click.option(
@@ -194,9 +190,7 @@ def train():
 @click.option("--epochs", default=100, help="Number of training epochs")
 @click.option("--batch-size", default=32, help="Batch size")
 @click.option("--lr", default=0.001, help="Learning rate")
-@click.option(
-    "--output-dir", default="checkpoints/", help="Output directory for checkpoints"
-)
+@click.option("--output-dir", default="checkpoints/", help="Output directory for checkpoints")
 @click.option("--resume", type=click.Path(exists=True), help="Resume from checkpoint")
 @click.option("--gpu", is_flag=True, help="Use GPU acceleration")
 @click.pass_context
@@ -402,9 +396,7 @@ def trajectory(tle_file, horizon, model, output, format):
 
                     with open(output, "w", newline="") as csvfile:
                         writer = csv.writer(csvfile)
-                        writer.writerow(
-                            ["norad_id", "name", "prediction_epoch", "horizon_days"]
-                        )
+                        writer.writerow(["norad_id", "name", "prediction_epoch", "horizon_days"])
                         for r in results:
                             writer.writerow(
                                 [
@@ -426,9 +418,7 @@ def trajectory(tle_file, horizon, model, output, format):
 
 @predict.command()
 @click.option("--satellite", required=True, type=int, help="Primary satellite NORAD ID")
-@click.option(
-    "--threshold", default=0.0001, help="Minimum collision probability threshold"
-)
+@click.option("--threshold", default=0.0001, help="Minimum collision probability threshold")
 @click.option("--days", default=7, help="Time window in days")
 @click.option("--output", "-o", type=click.Path(), help="Output file")
 def conjunctions(satellite, threshold, days, output):

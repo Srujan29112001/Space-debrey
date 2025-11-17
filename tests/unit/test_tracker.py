@@ -13,9 +13,7 @@ from space_debris_tracker.computer_vision.tracking.deepsort import (
     DeepSORTTracker,
     KalmanFilter,
 )
-from space_debris_tracker.computer_vision.tracking.deepsort import (
-    Track as DeepSORTTrack,
-)
+from space_debris_tracker.computer_vision.tracking.deepsort import Track as DeepSORTTrack
 from tests.utils import generate_detections
 
 
@@ -255,9 +253,7 @@ class TestTrackManagement:
             features=np.random.randn(128),
         )
 
-        track = DeepSORTTrack(
-            track_id=1, detection=detection, feature=detection.features
-        )
+        track = DeepSORTTrack(track_id=1, detection=detection, feature=detection.features)
 
         assert track is not None
         assert track.track_id == 1
@@ -272,9 +268,7 @@ class TestTrackManagement:
             features=np.random.randn(128),
         )
 
-        track = DeepSORTTrack(
-            track_id=1, detection=detection, feature=detection.features
-        )
+        track = DeepSORTTrack(track_id=1, detection=detection, feature=detection.features)
 
         # Update with new detection
         new_detection = Detection(
@@ -300,9 +294,7 @@ class TestTrackManagement:
             features=np.random.randn(128),
         )
 
-        track = DeepSORTTrack(
-            track_id=1, detection=detection, feature=detection.features
-        )
+        track = DeepSORTTrack(track_id=1, detection=detection, feature=detection.features)
 
         initial_age = track.time_since_update
 

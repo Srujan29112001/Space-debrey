@@ -431,9 +431,7 @@ def assert_valid_detection(detection: Dict):
     assert 0.0 <= conf <= 1.0, f"Invalid confidence: {conf}"
 
 
-def assert_arrays_close(
-    arr1: np.ndarray, arr2: np.ndarray, rtol: float = 1e-5, atol: float = 1e-8
-):
+def assert_arrays_close(arr1: np.ndarray, arr2: np.ndarray, rtol: float = 1e-5, atol: float = 1e-8):
     """Assert two arrays are close"""
     assert arr1.shape == arr2.shape, f"Shape mismatch: {arr1.shape} vs {arr2.shape}"
     np.testing.assert_allclose(arr1, arr2, rtol=rtol, atol=atol)

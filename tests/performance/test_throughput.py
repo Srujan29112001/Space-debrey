@@ -204,9 +204,7 @@ class TestDataIngestionThroughput:
         )
         from tests.utils import generate_kafka_message
 
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="test"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="test")
         consumer.consumer = mock_kafka_consumer
 
         # Generate messages

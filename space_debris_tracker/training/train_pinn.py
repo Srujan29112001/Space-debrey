@@ -98,9 +98,7 @@ class PINNTrainer:
         # Adaptive loss weighting
         if self.adaptive_weights:
             self.loss_weighting = AdaptiveLossWeighting(num_tasks=2).to(device)
-            self.weight_optimizer = optim.Adam(
-                self.loss_weighting.parameters(), lr=0.001
-            )
+            self.weight_optimizer = optim.Adam(self.loss_weighting.parameters(), lr=0.001)
         else:
             self.loss_weighting = None
 
@@ -329,9 +327,7 @@ class PINNTrainer:
                     curr_pred = predictions[:, t, :]
                     next_pred = predictions[:, t + 1, :]
 
-                    phys_loss = self.model.compute_physics_loss(
-                        next_pred, curr_pred, dt=60.0
-                    )
+                    phys_loss = self.model.compute_physics_loss(next_pred, curr_pred, dt=60.0)
                     physics_loss += phys_loss
 
                 physics_loss /= target_seq.shape[1] - 1
@@ -390,25 +386,19 @@ class PINNTrainer:
 
             if self.adaptive_weights:
                 weights = torch.exp(-self.loss_weighting.log_vars).detach().cpu()
-                print(
-                    f"  Adaptive weights: Data={weights[0]:.4f}, Physics={weights[1]:.4f}"
-                )
+                print(f"  Adaptive weights: Data={weights[0]:.4f}, Physics={weights[1]:.4f}")
 
             if self.writer is not None:
                 for key, value in train_metrics.items():
                     self.writer.add_scalar(f"train/{key}", value, epoch)
                 for key, value in val_metrics.items():
                     self.writer.add_scalar(f"val/{key}", value, epoch)
-                self.writer.add_scalar(
-                    "lr", self.optimizer.param_groups[0]["lr"], epoch
-                )
+                self.writer.add_scalar("lr", self.optimizer.param_groups[0]["lr"], epoch)
 
                 if self.adaptive_weights:
                     weights = torch.exp(-self.loss_weighting.log_vars).detach()
                     self.writer.add_scalar("adaptive_weights/data", weights[0], epoch)
-                    self.writer.add_scalar(
-                        "adaptive_weights/physics", weights[1], epoch
-                    )
+                    self.writer.add_scalar("adaptive_weights/physics", weights[1], epoch)
 
             # Save checkpoint
             if val_metrics["total_loss"] < self.best_val_loss:
@@ -431,9 +421,7 @@ class PINNTrainer:
             "epoch": epoch,
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
-            "scheduler_state_dict": (
-                self.scheduler.state_dict() if self.scheduler else None
-            ),
+            "scheduler_state_dict": (self.scheduler.state_dict() if self.scheduler else None),
             "best_val_loss": self.best_val_loss,
             "config": self.config,
         }

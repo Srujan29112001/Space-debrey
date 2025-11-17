@@ -109,9 +109,7 @@ class PhysicsInformedNN(nn.Module):
         energy_loss = self._compute_energy_loss(pos_curr, vel_curr, pos_pred, vel_pred)
 
         # Angular momentum conservation loss
-        momentum_loss = self._compute_momentum_loss(
-            pos_curr, vel_curr, pos_pred, vel_pred
-        )
+        momentum_loss = self._compute_momentum_loss(pos_curr, vel_curr, pos_pred, vel_pred)
 
         # Total physics loss
         total_loss = physics_loss + 0.1 * energy_loss + 0.1 * momentum_loss

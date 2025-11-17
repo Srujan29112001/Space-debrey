@@ -91,9 +91,7 @@ class DebrisImageDataset(Dataset):
                 [
                     A.RandomRotate90(p=0.5),
                     A.Flip(p=0.5),
-                    A.RandomBrightnessContrast(
-                        brightness_limit=0.3, contrast_limit=0.3, p=0.5
-                    ),
+                    A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
                     A.GaussNoise(var_limit=(10.0, 50.0), p=0.3),
                     A.OneOf(
                         [
@@ -156,9 +154,7 @@ class DebrisImageDataset(Dataset):
 
         # Apply augmentation
         try:
-            transformed = self.transform(
-                image=image, bboxes=bboxes, class_labels=class_labels
-            )
+            transformed = self.transform(image=image, bboxes=bboxes, class_labels=class_labels)
             image = transformed["image"]
             bboxes = transformed["bboxes"]
             class_labels = transformed["class_labels"]
@@ -182,9 +178,7 @@ class DebrisImageDataset(Dataset):
             "image_path": str(img_path),
         }
 
-    def _load_annotations(
-        self, annotation_path: Path
-    ) -> Tuple[List[List[float]], List[int]]:
+    def _load_annotations(self, annotation_path: Path) -> Tuple[List[List[float]], List[int]]:
         """
         Load YOLO format annotations
 
@@ -325,9 +319,7 @@ class OrbitDataset(Dataset):
         traj_idx, start_idx = self.indices[idx]
 
         # Extract sequence
-        input_seq = self.trajectories[
-            traj_idx, start_idx : start_idx + self.sequence_length
-        ].copy()
+        input_seq = self.trajectories[traj_idx, start_idx : start_idx + self.sequence_length].copy()
 
         target_seq = self.trajectories[
             traj_idx,
@@ -339,24 +331,14 @@ class OrbitDataset(Dataset):
 
         # Normalize
         if self.normalize:
-            input_seq[:, :3] = (input_seq[:, :3] - self.pos_mean) / (
-                self.pos_std + 1e-8
-            )
-            input_seq[:, 3:] = (input_seq[:, 3:] - self.vel_mean) / (
-                self.vel_std + 1e-8
-            )
-            target_seq[:, :3] = (target_seq[:, :3] - self.pos_mean) / (
-                self.pos_std + 1e-8
-            )
-            target_seq[:, 3:] = (target_seq[:, 3:] - self.vel_mean) / (
-                self.vel_std + 1e-8
-            )
+            input_seq[:, :3] = (input_seq[:, :3] - self.pos_mean) / (self.pos_std + 1e-8)
+            input_seq[:, 3:] = (input_seq[:, 3:] - self.vel_mean) / (self.vel_std + 1e-8)
+            target_seq[:, :3] = (target_seq[:, :3] - self.pos_mean) / (self.pos_std + 1e-8)
+            target_seq[:, 3:] = (target_seq[:, 3:] - self.vel_mean) / (self.vel_std + 1e-8)
 
         # Get timestamps if available
         if self.timestamps is not None:
-            input_times = self.timestamps[
-                traj_idx, start_idx : start_idx + self.sequence_length
-            ]
+            input_times = self.timestamps[traj_idx, start_idx : start_idx + self.sequence_length]
             target_times = self.timestamps[
                 traj_idx,
                 start_idx
@@ -381,9 +363,7 @@ class ConjunctionDataset(Dataset):
     Dataset for conjunction events (risk prediction)
     """
 
-    def __init__(
-        self, data_path: Union[str, Path], lookback: int = 100, time_to_tca: int = 50
-    ):
+    def __init__(self, data_path: Union[str, Path], lookback: int = 100, time_to_tca: int = 50):
         """
         Initialize ConjunctionDataset
 

@@ -129,9 +129,7 @@ class SpaceFeatureExtractor(nn.Module):
         self.temporal_diff = TemporalDifferenceModule(256)
 
         # Output features
-        self.output = nn.Sequential(
-            nn.Conv2d(256, 512, 1), nn.AdaptiveAvgPool2d((1, 1))
-        )
+        self.output = nn.Sequential(nn.Conv2d(256, 512, 1), nn.AdaptiveAvgPool2d((1, 1)))
 
     def forward(self, x, x_prev=None):
         x = self.star_removal(x)
@@ -232,9 +230,7 @@ class YOLOv7Detector(nn.Module):
         img = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0)
         return img.to(self.device)
 
-    def _postprocess(
-        self, features: torch.Tensor, orig_shape: Tuple
-    ) -> List[Detection]:
+    def _postprocess(self, features: torch.Tensor, orig_shape: Tuple) -> List[Detection]:
         """Post-process YOLO output"""
         # Simplified - in production implement full YOLO post-processing
         detections = []
@@ -279,9 +275,7 @@ class DINOv2Detector:
 
         return features.squeeze()
 
-    def detect_novel_objects(
-        self, image: np.ndarray, threshold: float = 0.5
-    ) -> List[Detection]:
+    def detect_novel_objects(self, image: np.ndarray, threshold: float = 0.5) -> List[Detection]:
         """Detect novel objects using DINO features"""
         features = self.extract_features(image)
 
@@ -366,9 +360,7 @@ class SpaceDebrisDetector:
         if previous_frames is not None and len(previous_frames) > 0:
             tracks = self.tracker.update(all_detections, processed)
         else:
-            tracks = [
-                self._detection_to_track(det, i) for i, det in enumerate(all_detections)
-            ]
+            tracks = [self._detection_to_track(det, i) for i, det in enumerate(all_detections)]
 
         # 6. 3D characterization for stable tracks
         characterized_objects = []

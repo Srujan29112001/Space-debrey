@@ -78,9 +78,7 @@ class TestPredictionPipeline:
         predictor.add_nearby_object(state2)
 
         # Predict
-        prediction = predictor.predict_trajectory(
-            initial_state=state1, time_horizon=5400, dt=60.0
-        )
+        prediction = predictor.predict_trajectory(initial_state=state1, time_horizon=5400, dt=60.0)
 
         # Should calculate collision probability
         assert "collision_probability" in prediction
@@ -331,9 +329,7 @@ class TestCollisionPrediction:
 
         predictor.add_nearby_object(state2)
 
-        prediction = predictor.predict_trajectory(
-            initial_state=state1, time_horizon=5400, dt=60.0
-        )
+        prediction = predictor.predict_trajectory(initial_state=state1, time_horizon=5400, dt=60.0)
 
         # Should detect close approach
         assert prediction["collision_probability"] >= 0.0
@@ -348,9 +344,7 @@ class TestCollisionPrediction:
 
         predictor.add_nearby_object(state2)
 
-        prediction = predictor.predict_trajectory(
-            initial_state=state1, time_horizon=3600, dt=60.0
-        )
+        prediction = predictor.predict_trajectory(initial_state=state1, time_horizon=3600, dt=60.0)
 
         # Low collision probability
         assert prediction["collision_probability"] < 0.1

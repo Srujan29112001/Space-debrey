@@ -29,9 +29,7 @@ class TestKafkaStreamConsumer:
 
     def test_consume_tle_message(self, mock_kafka_consumer):
         """Test consuming TLE message"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         consumer.consumer = mock_kafka_consumer
 
@@ -48,9 +46,7 @@ class TestKafkaStreamConsumer:
 
     def test_consume_detection_message(self, mock_kafka_consumer):
         """Test consuming detection message"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         consumer.consumer = mock_kafka_consumer
 
@@ -66,9 +62,7 @@ class TestKafkaStreamConsumer:
 
     def test_consume_alert_message(self, mock_kafka_consumer):
         """Test consuming alert message"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         consumer.consumer = mock_kafka_consumer
 
@@ -83,9 +77,7 @@ class TestKafkaStreamConsumer:
 
     def test_message_deserialization(self):
         """Test message deserialization"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         # JSON message
         import json
@@ -99,9 +91,7 @@ class TestKafkaStreamConsumer:
 
     def test_message_validation(self):
         """Test message validation"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         # Valid message
         valid_msg = {
@@ -136,9 +126,7 @@ class TestKafkaStreamConsumer:
 
     def test_consumer_error_handling(self, mock_kafka_consumer):
         """Test error handling"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         consumer.consumer = mock_kafka_consumer
 
@@ -155,9 +143,7 @@ class TestKafkaStreamConsumer:
 
     def test_consumer_commit(self, mock_kafka_consumer):
         """Test message commit"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         consumer.consumer = mock_kafka_consumer
 
@@ -169,9 +155,7 @@ class TestKafkaStreamConsumer:
 
     def test_consumer_close(self, mock_kafka_consumer):
         """Test consumer cleanup"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         consumer.consumer = mock_kafka_consumer
 
@@ -183,9 +167,7 @@ class TestKafkaStreamConsumer:
     @pytest.mark.parametrize("message_type", ["tle", "detection", "alert"])
     def test_message_routing(self, mock_kafka_consumer, message_type):
         """Test message routing by type"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         consumer.consumer = mock_kafka_consumer
 
@@ -211,9 +193,7 @@ class TestKafkaStreamConsumer:
 
     def test_throughput_measurement(self):
         """Test throughput measurement"""
-        consumer = KafkaStreamConsumer(
-            bootstrap_servers=["localhost:9092"], topic="space_debris"
-        )
+        consumer = KafkaStreamConsumer(bootstrap_servers=["localhost:9092"], topic="space_debris")
 
         # Enable metrics
         consumer.enable_metrics()

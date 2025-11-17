@@ -197,9 +197,7 @@ def require_permission(permission: Permission):
             user_roles = kwargs.get("user_roles", [])
 
             if not RBACManager.has_permission(user_roles, permission):
-                raise PermissionError(
-                    f"Missing required permission: {permission.value}"
-                )
+                raise PermissionError(f"Missing required permission: {permission.value}")
 
             return func(*args, **kwargs)
 

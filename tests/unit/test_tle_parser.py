@@ -151,18 +151,14 @@ class TestTLEParser:
         parser = TLEParser()
 
         # Year 23 -> 2023
-        line1_2023 = (
-            "1 25544U 98067A   23001.00000000  .00016717  00000-0  10270-3 0  9005"
-        )
+        line1_2023 = "1 25544U 98067A   23001.00000000  .00016717  00000-0  10270-3 0  9005"
         line2 = "2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72834465 00009"
 
         elements = parser.parse_tle(line1_2023, line2)
         assert elements.epoch.year == 2023
 
         # Year 99 -> 1999
-        line1_1999 = (
-            "1 25544U 98067A   99001.00000000  .00016717  00000-0  10270-3 0  9005"
-        )
+        line1_1999 = "1 25544U 98067A   99001.00000000  .00016717  00000-0  10270-3 0  9005"
         elements = parser.parse_tle(line1_1999, line2)
         assert elements.epoch.year == 1999
 

@@ -114,9 +114,7 @@ class ObservationScheduler:
 
         return strategies.get(action, strategies[0])
 
-    def update(
-        self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray
-    ):
+    def update(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray):
         """
         Update Q-network
 
@@ -139,9 +137,7 @@ class ObservationScheduler:
     def _update_network(self, batch_size: int = 32):
         """Update network using experience replay"""
         # Sample random batch
-        indices = np.random.choice(
-            len(self.experience_buffer), batch_size, replace=False
-        )
+        indices = np.random.choice(len(self.experience_buffer), batch_size, replace=False)
         batch = [self.experience_buffer[i] for i in indices]
 
         # Prepare tensors

@@ -129,9 +129,7 @@ class SpaceKnowledgeGraph:
                 name=satellite_data.get("name", ""),
                 intl_des=satellite_data.get("international_designator", ""),
                 operator=satellite_data.get("operator", ""),
-                launch_date=satellite_data.get(
-                    "launch_date", datetime.now().isoformat()
-                ),
+                launch_date=satellite_data.get("launch_date", datetime.now().isoformat()),
                 mass=satellite_data.get("mass", 0.0),
                 status=satellite_data.get("status", "ACTIVE"),
             )
@@ -220,9 +218,7 @@ class SpaceKnowledgeGraph:
             record = result.single()
             return dict(record["d"]) if record else {}
 
-    def update_conjunction_assessment(
-        self, obj1_id: int, obj2_id: str, prediction: Dict
-    ) -> Dict:
+    def update_conjunction_assessment(self, obj1_id: int, obj2_id: str, prediction: Dict) -> Dict:
         """
         Update conjunction assessment
 
@@ -285,9 +281,7 @@ class SpaceKnowledgeGraph:
             record = result.single()
             return dict(record["c"]) if record else {}
 
-    def get_historical_conjunctions(
-        self, satellite_id: int, days_back: int = 30
-    ) -> List[Dict]:
+    def get_historical_conjunctions(self, satellite_id: int, days_back: int = 30) -> List[Dict]:
         """
         Get historical conjunctions for satellite
 
@@ -322,9 +316,7 @@ class SpaceKnowledgeGraph:
                 conjunctions.append(
                     {
                         "conjunction": dict(record["c"]),
-                        "other_object": (
-                            dict(record["other"]) if record["other"] else None
-                        ),
+                        "other_object": (dict(record["other"]) if record["other"] else None),
                         "miss_distance": record["miss_distance"],
                         "probability": record["probability"],
                     }
@@ -403,9 +395,7 @@ class SpaceKnowledgeGraph:
 
             return debris_list
 
-    def get_satellites_in_orbit_range(
-        self, altitude_min: float, altitude_max: float
-    ) -> List[Dict]:
+    def get_satellites_in_orbit_range(self, altitude_min: float, altitude_max: float) -> List[Dict]:
         """
         Get satellites in altitude range
 
@@ -436,9 +426,7 @@ class SpaceKnowledgeGraph:
 
             satellites = []
             for record in result:
-                satellites.append(
-                    {"satellite": dict(record["s"]), "orbit": dict(record["o"])}
-                )
+                satellites.append({"satellite": dict(record["s"]), "orbit": dict(record["o"])})
 
             return satellites
 

@@ -125,9 +125,7 @@ class OrbitPredictionEngine:
             uncertainty = None
 
         # 5. Collision probability
-        collision_prob = self._calculate_collision_probability(
-            trajectory_long, uncertainty
-        )
+        collision_prob = self._calculate_collision_probability(trajectory_long, uncertainty)
 
         # Convert to numpy
         positions = trajectory_long[:, :3].cpu().numpy()
@@ -145,9 +143,7 @@ class OrbitPredictionEngine:
             "method": "PINN+Transformer+Mamba2",
         }
 
-    def _predict_pinn(
-        self, initial_state: torch.Tensor, time_steps: np.ndarray
-    ) -> torch.Tensor:
+    def _predict_pinn(self, initial_state: torch.Tensor, time_steps: np.ndarray) -> torch.Tensor:
         """
         Predict using Physics-Informed Neural Network
 
@@ -233,15 +229,11 @@ class OrbitPredictionEngine:
 
         # Transformer refinement
         with torch.no_grad():
-            refined = self.transformer(trajectory.unsqueeze(0), nearby_encoded).squeeze(
-                0
-            )
+            refined = self.transformer(trajectory.unsqueeze(0), nearby_encoded).squeeze(0)
 
         return refined
 
-    def _predict_mamba(
-        self, trajectory: torch.Tensor, time_steps: np.ndarray
-    ) -> torch.Tensor:
+    def _predict_mamba(self, trajectory: torch.Tensor, time_steps: np.ndarray) -> torch.Tensor:
         """
         Long-term prediction using Mamba2
 
@@ -348,9 +340,7 @@ if __name__ == "__main__":
 
     # Initial state (ISS-like orbit)
     # Position: ~400 km altitude
-    initial_state = np.array(
-        [6778.0, 0.0, 0.0, 0.0, 7.66, 0.0]  # Position (km)  # Velocity (km/s)
-    )
+    initial_state = np.array([6778.0, 0.0, 0.0, 0.0, 7.66, 0.0])  # Position (km)  # Velocity (km/s)
 
     # Predict 7 days ahead
     prediction = predictor.predict_trajectory(

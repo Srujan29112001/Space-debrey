@@ -130,9 +130,7 @@ class GaussianSplatting3D:
 
         return points.detach()
 
-    def _compute_loss(
-        self, points: torch.Tensor, views: List[np.ndarray]
-    ) -> torch.Tensor:
+    def _compute_loss(self, points: torch.Tensor, views: List[np.ndarray]) -> torch.Tensor:
         """Compute reconstruction loss"""
         # Simplified loss - in production implement proper splatting rendering
         # For now, use point cloud variance as regularization
@@ -270,9 +268,7 @@ if __name__ == "__main__":
     splatter = GaussianSplatting3D(num_points=5000)
 
     # Generate test views
-    test_views = [
-        np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8) for _ in range(5)
-    ]
+    test_views = [np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8) for _ in range(5)]
 
     # Reconstruct
     shape_params = splatter.reconstruct(test_views)
