@@ -3,10 +3,11 @@ GraphQL API
 Provides GraphQL interface for complex queries
 """
 
+from datetime import datetime
+from typing import List, Optional
+
 import strawberry
 from strawberry.fastapi import GraphQLRouter
-from typing import List, Optional
-from datetime import datetime
 
 
 # GraphQL Types
@@ -57,7 +58,7 @@ class Query:
                 name="ISS (ZARYA)",
                 operator="ISS",
                 status="ACTIVE",
-                mass=419700.0
+                mass=419700.0,
             )
         return None
 
@@ -71,7 +72,7 @@ class Query:
                 name="ISS (ZARYA)",
                 operator="ISS",
                 status="ACTIVE",
-                mass=419700.0
+                mass=419700.0,
             )
         ]
 
@@ -79,7 +80,7 @@ class Query:
     def conjunctions(
         self,
         satellite_id: Optional[int] = None,
-        min_probability: Optional[float] = None
+        min_probability: Optional[float] = None,
     ) -> List[Conjunction]:
         """Query conjunctions"""
         # Placeholder
@@ -90,7 +91,7 @@ class Query:
                 tca=datetime.utcnow().isoformat(),
                 miss_distance=2.5,
                 probability=0.00015,
-                risk_level="MEDIUM"
+                risk_level="MEDIUM",
             )
         ]
 
@@ -100,7 +101,7 @@ class Query:
         return DebrisStatistics(
             total_count=15230,
             by_size='{"LARGE": 3450, "MEDIUM": 8920, "SMALL": 2860}',
-            by_altitude='{"LEO": 8920, "MEO": 2340, "GEO": 3970}'
+            by_altitude='{"LEO": 8920, "MEO": 2340, "GEO": 3970}',
         )
 
 
@@ -115,7 +116,7 @@ class Mutation:
             norad_id=norad_id,
             name="Updated Satellite",
             operator="OPERATOR",
-            status="ACTIVE"
+            status="ACTIVE",
         )
 
 

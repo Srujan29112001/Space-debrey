@@ -6,8 +6,8 @@ Neo4j-based GraphRAG system for satellite catalog, orbital data,
 conjunctions, and collision risk analysis
 """
 
-from .space_knowledge_graph import SpaceKnowledgeGraph
 from .schema import GraphSchema
+from .space_knowledge_graph import SpaceKnowledgeGraph
 
 __all__ = [
     "SpaceKnowledgeGraph",

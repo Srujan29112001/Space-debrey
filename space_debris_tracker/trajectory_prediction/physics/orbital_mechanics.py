@@ -3,9 +3,10 @@ Orbital Mechanics
 Implements orbital propagation with perturbations
 """
 
-import numpy as np
-from typing import Tuple, Optional
 import math
+from typing import Optional, Tuple
+
+import numpy as np
 
 
 class OrbitalMechanics:
@@ -29,15 +30,17 @@ class OrbitalMechanics:
         # Solar radiation pressure
         self.P_solar = 4.56e-6  # N/m^2
 
-    def propagate(self,
-                  position: np.ndarray,
-                  velocity: np.ndarray,
-                  dt: float,
-                  include_j2: bool = True,
-                  include_drag: bool = True,
-                  include_solar_pressure: bool = True,
-                  area_to_mass: float = 0.01,  # m^2/kg
-                  Cd: float = 2.2) -> Tuple[np.ndarray, np.ndarray]:
+    def propagate(
+        self,
+        position: np.ndarray,
+        velocity: np.ndarray,
+        dt: float,
+        include_j2: bool = True,
+        include_drag: bool = True,
+        include_solar_pressure: bool = True,
+        area_to_mass: float = 0.01,  # m^2/kg
+        Cd: float = 2.2,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Propagate orbit one time step
 
@@ -62,7 +65,7 @@ class OrbitalMechanics:
 
         # Two-body gravity
         r = np.linalg.norm(position)
-        a_gravity = -self.mu * position / (r ** 3)
+        a_gravity = -self.mu * position / (r**3)
         acceleration += a_gravity
 
         # J2 perturbation
@@ -79,9 +82,7 @@ class OrbitalMechanics:
 
         # Solar radiation pressure
         if include_solar_pressure:
-            a_solar = self.calculate_solar_pressure_acceleration(
-                position, area_to_mass
-            )
+            a_solar = self.calculate_solar_pressure_acceleration(position, area_to_mass)
             acceleration += a_solar
 
         # Integrate using RK4
@@ -104,19 +105,17 @@ class OrbitalMechanics:
         x, y, z = position
         r = np.linalg.norm(position)
 
-        factor = 1.5 * self.J2 * self.mu * (self.Re ** 2) / (r ** 5)
+        factor = 1.5 * self.J2 * self.mu * (self.Re**2) / (r**5)
 
-        ax = factor * x * (5 * (z ** 2) / (r ** 2) - 1)
-        ay = factor * y * (5 * (z ** 2) / (r ** 2) - 1)
-        az = factor * z * (5 * (z ** 2) / (r ** 2) - 3)
+        ax = factor * x * (5 * (z**2) / (r**2) - 1)
+        ay = factor * y * (5 * (z**2) / (r**2) - 1)
+        az = factor * z * (5 * (z**2) / (r**2) - 3)
 
         return np.array([ax, ay, az])
 
-    def calculate_drag_acceleration(self,
-                                   position: np.ndarray,
-                                   velocity: np.ndarray,
-                                   area_to_mass: float,
-                                   Cd: float) -> np.ndarray:
+    def calculate_drag_acceleration(
+        self, position: np.ndarray, velocity: np.ndarray, area_to_mass: float, Cd: float
+    ) -> np.ndarray:
         """
         Calculate atmospheric drag acceleration
 
@@ -159,9 +158,9 @@ class OrbitalMechanics:
 
         return a_drag
 
-    def calculate_solar_pressure_acceleration(self,
-                                             position: np.ndarray,
-                                             area_to_mass: float) -> np.ndarray:
+    def calculate_solar_pressure_acceleration(
+        self, position: np.ndarray, area_to_mass: float
+    ) -> np.ndarray:
         """
         Calculate solar radiation pressure acceleration
 
@@ -212,11 +211,13 @@ class OrbitalMechanics:
 
         return False
 
-    def _rk4_step(self,
-                  position: np.ndarray,
-                  velocity: np.ndarray,
-                  acceleration: np.ndarray,
-                  dt: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _rk4_step(
+        self,
+        position: np.ndarray,
+        velocity: np.ndarray,
+        acceleration: np.ndarray,
+        dt: float,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         RK4 integration step
 
@@ -233,13 +234,11 @@ class OrbitalMechanics:
         # In production, implement full RK4
 
         new_velocity = velocity + acceleration * dt
-        new_position = position + velocity * dt + 0.5 * acceleration * (dt ** 2)
+        new_position = position + velocity * dt + 0.5 * acceleration * (dt**2)
 
         return new_position, new_velocity
 
-    def kepler_elements(self,
-                       position: np.ndarray,
-                       velocity: np.ndarray) -> dict:
+    def kepler_elements(self, position: np.ndarray, velocity: np.ndarray) -> dict:
         """
         Convert state vector to Keplerian elements
 
@@ -262,13 +261,13 @@ class OrbitalMechanics:
         e = np.linalg.norm(e_vec)
 
         # Specific orbital energy
-        E = v ** 2 / 2 - self.mu / r
+        E = v**2 / 2 - self.mu / r
 
         # Semi-major axis
         if abs(E) > 1e-10:
             a = -self.mu / (2 * E)
         else:
-            a = float('inf')
+            a = float("inf")
 
         # Inclination
         i = np.arccos(h_vec[2] / h)
@@ -302,12 +301,12 @@ class OrbitalMechanics:
             nu = 0
 
         return {
-            'a': a,  # Semi-major axis (km)
-            'e': e,  # Eccentricity
-            'i': np.degrees(i),  # Inclination (deg)
-            'omega': np.degrees(omega),  # RAAN (deg)
-            'w': np.degrees(w),  # Argument of periapsis (deg)
-            'nu': np.degrees(nu),  # True anomaly (deg)
+            "a": a,  # Semi-major axis (km)
+            "e": e,  # Eccentricity
+            "i": np.degrees(i),  # Inclination (deg)
+            "omega": np.degrees(omega),  # RAAN (deg)
+            "w": np.degrees(w),  # Argument of periapsis (deg)
+            "nu": np.degrees(nu),  # True anomaly (deg)
         }
 
 
@@ -330,7 +329,7 @@ if __name__ == "__main__":
         print(f"  {key}: {value:.2f}")
 
     # Propagate one orbit
-    period = 2 * np.pi * np.sqrt(elements['a'] ** 3 / om.mu)
+    period = 2 * np.pi * np.sqrt(elements["a"] ** 3 / om.mu)
     print(f"\nOrbital period: {period / 60:.2f} minutes")
 
     # Propagate 10 minutes

@@ -2,11 +2,12 @@
 Deep Ensemble for Uncertainty Quantification
 """
 
+from copy import deepcopy
+from typing import List
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from typing import List
-from copy import deepcopy
 
 
 class DeepEnsemble:
@@ -15,10 +16,12 @@ class DeepEnsemble:
     Trains multiple models with different initializations
     """
 
-    def __init__(self,
-                 base_model: nn.Module,
-                 n_models: int = 5,
-                 uncertainty_type: str = 'aleatoric_epistemic'):
+    def __init__(
+        self,
+        base_model: nn.Module,
+        n_models: int = 5,
+        uncertainty_type: str = "aleatoric_epistemic",
+    ):
         """
         Initialize deep ensemble
 
@@ -44,9 +47,9 @@ class DeepEnsemble:
             if m.bias is not None:
                 torch.nn.init.zeros_(m.bias)
 
-    def estimate(self,
-                 initial_state: torch.Tensor,
-                 time_steps: np.ndarray) -> torch.Tensor:
+    def estimate(
+        self, initial_state: torch.Tensor, time_steps: np.ndarray
+    ) -> torch.Tensor:
         """
         Estimate uncertainty using ensemble
 
@@ -102,9 +105,7 @@ if __name__ == "__main__":
 
     # Create base model
     base_model = PhysicsInformedNN(
-        input_dim=7,
-        hidden_dims=[128, 256, 128],
-        output_dim=6
+        input_dim=7, hidden_dims=[128, 256, 128], output_dim=6
     )
 
     # Create ensemble

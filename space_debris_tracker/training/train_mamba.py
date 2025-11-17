@@ -3,24 +3,25 @@ Mamba2 Training for Long-Sequence Orbit Prediction
 Efficient state space model training with memory-efficient batching
 """
 
+import gc
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from pathlib import Path
-from typing import Dict, Optional, Tuple, List
-import numpy as np
 from tqdm import tqdm
-from datetime import datetime
-import gc
 
 try:
     from torch.utils.tensorboard import SummaryWriter
 except ImportError:
     SummaryWriter = None
 
-from .dataset import OrbitDataset, create_dataloaders
 from ..trajectory_prediction.mamba.mamba2_predictor import Mamba2Predictor
+from .dataset import OrbitDataset, create_dataloaders
 
 
 class MemoryEfficientMambaTrainer:
@@ -34,8 +35,8 @@ class MemoryEfficientMambaTrainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         config: Dict,
-        device: str = 'cuda',
-        output_dir: str = 'outputs/mamba_training'
+        device: str = "cuda",
+        output_dir: str = "outputs/mamba_training",
     ):
         """
         Initialize Mamba trainer
@@ -57,9 +58,11 @@ class MemoryEfficientMambaTrainer:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Training parameters
-        self.epochs = config.get('epochs', 100)
-        self.chunk_size = config.get('chunk_size', 1000)  # Process long sequences in chunks
-        self.gradient_checkpointing = config.get('gradient_checkpointing', True)
+        self.epochs = config.get("epochs", 100)
+        self.chunk_size = config.get(
+            "chunk_size", 1000
+        )  # Process long sequences in chunks
+        self.gradient_checkpointing = config.get("gradient_checkpointing", True)
 
         # Optimizer
         self.optimizer = self._build_optimizer()
@@ -72,12 +75,12 @@ class MemoryEfficientMambaTrainer:
 
         # Tensorboard
         if SummaryWriter is not None:
-            self.writer = SummaryWriter(log_dir=str(self.output_dir / 'logs'))
+            self.writer = SummaryWriter(log_dir=str(self.output_dir / "logs"))
         else:
             self.writer = None
 
         # Best metrics
-        self.best_val_loss = float('inf')
+        self.best_val_loss = float("inf")
 
         # Enable gradient checkpointing for memory efficiency
         if self.gradient_checkpointing:
@@ -93,47 +96,38 @@ class MemoryEfficientMambaTrainer:
         # Wrap forward pass of each layer with checkpoint
         for layer in self.model.layers:
             layer.forward = torch.utils.checkpoint.checkpoint(
-                layer.forward,
-                use_reentrant=False
+                layer.forward, use_reentrant=False
             )
 
     def _build_optimizer(self) -> optim.Optimizer:
         """Build optimizer"""
-        lr = self.config.get('lr', 1e-4)
-        weight_decay = self.config.get('weight_decay', 1e-5)
+        lr = self.config.get("lr", 1e-4)
+        weight_decay = self.config.get("weight_decay", 1e-5)
 
         return optim.AdamW(
             self.model.parameters(),
             lr=lr,
             weight_decay=weight_decay,
-            betas=(0.9, 0.999)
+            betas=(0.9, 0.999),
         )
 
     def _build_scheduler(self):
         """Build learning rate scheduler"""
-        scheduler_type = self.config.get('scheduler', 'cosine')
+        scheduler_type = self.config.get("scheduler", "cosine")
 
-        if scheduler_type == 'cosine':
+        if scheduler_type == "cosine":
             return optim.lr_scheduler.CosineAnnealingLR(
-                self.optimizer,
-                T_max=self.epochs,
-                eta_min=1e-6
+                self.optimizer, T_max=self.epochs, eta_min=1e-6
             )
-        elif scheduler_type == 'plateau':
+        elif scheduler_type == "plateau":
             return optim.lr_scheduler.ReduceLROnPlateau(
-                self.optimizer,
-                mode='min',
-                factor=0.5,
-                patience=5,
-                verbose=True
+                self.optimizer, mode="min", factor=0.5, patience=5, verbose=True
             )
         else:
             return None
 
     def _chunk_sequence(
-        self,
-        sequence: torch.Tensor,
-        chunk_size: int
+        self, sequence: torch.Tensor, chunk_size: int
     ) -> List[torch.Tensor]:
         """
         Split long sequence into chunks for memory efficiency
@@ -149,7 +143,7 @@ class MemoryEfficientMambaTrainer:
         chunks = []
 
         for i in range(0, seq_len, chunk_size):
-            chunk = sequence[:, i:i + chunk_size, :]
+            chunk = sequence[:, i : i + chunk_size, :]
             chunks.append(chunk)
 
         return chunks
@@ -167,19 +161,19 @@ class MemoryEfficientMambaTrainer:
         self.model.train()
 
         metrics = {
-            'loss': 0.0,
-            'position_mae': 0.0,
-            'velocity_mae': 0.0,
-            'short_term_error': 0.0,  # 1-10 steps
-            'medium_term_error': 0.0,  # 11-30 steps
-            'long_term_error': 0.0   # 31+ steps
+            "loss": 0.0,
+            "position_mae": 0.0,
+            "velocity_mae": 0.0,
+            "short_term_error": 0.0,  # 1-10 steps
+            "medium_term_error": 0.0,  # 11-30 steps
+            "long_term_error": 0.0,  # 31+ steps
         }
 
         pbar = tqdm(self.train_loader, desc=f"Epoch {epoch}/{self.epochs}")
 
         for batch_idx, batch in enumerate(pbar):
-            input_seq = batch['input'].to(self.device)  # [B, T_in, 6]
-            target_seq = batch['target'].to(self.device)  # [B, T_out, 6]
+            input_seq = batch["input"].to(self.device)  # [B, T_in, 6]
+            target_seq = batch["target"].to(self.device)  # [B, T_out, 6]
 
             batch_size, input_len, _ = input_seq.shape
             _, target_len, _ = target_seq.shape
@@ -208,54 +202,59 @@ class MemoryEfficientMambaTrainer:
 
             # Gradient clipping
             torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(),
-                max_norm=self.config.get('grad_clip', 1.0)
+                self.model.parameters(), max_norm=self.config.get("grad_clip", 1.0)
             )
 
             self.optimizer.step()
 
             # Compute metrics
             with torch.no_grad():
-                position_mae = torch.mean(torch.abs(
-                    predictions[:, :, :3] - target_seq[:, :, :3]
-                ))
-                velocity_mae = torch.mean(torch.abs(
-                    predictions[:, :, 3:] - target_seq[:, :, 3:]
-                ))
+                position_mae = torch.mean(
+                    torch.abs(predictions[:, :, :3] - target_seq[:, :, :3])
+                )
+                velocity_mae = torch.mean(
+                    torch.abs(predictions[:, :, 3:] - target_seq[:, :, 3:])
+                )
 
                 # Error at different horizons
                 if target_len >= 10:
-                    short_error = torch.mean(torch.abs(
-                        predictions[:, :10, :3] - target_seq[:, :10, :3]
-                    ))
+                    short_error = torch.mean(
+                        torch.abs(predictions[:, :10, :3] - target_seq[:, :10, :3])
+                    )
                 else:
                     short_error = position_mae
 
                 if target_len >= 30:
-                    medium_error = torch.mean(torch.abs(
-                        predictions[:, 10:30, :3] - target_seq[:, 10:30, :3]
-                    ))
-                    long_error = torch.mean(torch.abs(
-                        predictions[:, 30:, :3] - target_seq[:, 30:, :3]
-                    ))
+                    medium_error = torch.mean(
+                        torch.abs(predictions[:, 10:30, :3] - target_seq[:, 10:30, :3])
+                    )
+                    long_error = torch.mean(
+                        torch.abs(predictions[:, 30:, :3] - target_seq[:, 30:, :3])
+                    )
                 else:
                     medium_error = position_mae
                     long_error = position_mae
 
             # Update metrics
-            metrics['loss'] += loss.item()
-            metrics['position_mae'] += position_mae.item()
-            metrics['velocity_mae'] += velocity_mae.item()
-            metrics['short_term_error'] += short_error.item()
-            metrics['medium_term_error'] += medium_error.item()
-            metrics['long_term_error'] += long_error.item()
+            metrics["loss"] += loss.item()
+            metrics["position_mae"] += position_mae.item()
+            metrics["velocity_mae"] += velocity_mae.item()
+            metrics["short_term_error"] += short_error.item()
+            metrics["medium_term_error"] += medium_error.item()
+            metrics["long_term_error"] += long_error.item()
 
             # Update progress bar
-            pbar.set_postfix({
-                'loss': f"{loss.item():.6f}",
-                'pos_mae': f"{position_mae.item():.6f}",
-                'mem': f"{torch.cuda.memory_allocated(self.device) / 1e9:.2f}GB" if torch.cuda.is_available() else "N/A"
-            })
+            pbar.set_postfix(
+                {
+                    "loss": f"{loss.item():.6f}",
+                    "pos_mae": f"{position_mae.item():.6f}",
+                    "mem": (
+                        f"{torch.cuda.memory_allocated(self.device) / 1e9:.2f}GB"
+                        if torch.cuda.is_available()
+                        else "N/A"
+                    ),
+                }
+            )
 
             # Periodic memory cleanup
             if batch_idx % 10 == 0:
@@ -271,9 +270,7 @@ class MemoryEfficientMambaTrainer:
         return metrics
 
     def _process_long_sequence(
-        self,
-        input_seq: torch.Tensor,
-        target_len: int
+        self, input_seq: torch.Tensor, target_len: int
     ) -> torch.Tensor:
         """
         Process long sequence in chunks
@@ -292,7 +289,7 @@ class MemoryEfficientMambaTrainer:
             # Process current sequence
             if current_seq.shape[1] > self.chunk_size:
                 # Only use last chunk_size states
-                pred = self.model(current_seq[:, -self.chunk_size:, :])
+                pred = self.model(current_seq[:, -self.chunk_size :, :])
                 next_state = pred[:, -1:, :]
             else:
                 pred = self.model(current_seq)
@@ -305,7 +302,7 @@ class MemoryEfficientMambaTrainer:
 
             # Keep only recent history to save memory
             if current_seq.shape[1] > self.chunk_size:
-                current_seq = current_seq[:, -self.chunk_size:, :]
+                current_seq = current_seq[:, -self.chunk_size :, :]
 
         return torch.cat(predictions, dim=1)
 
@@ -322,20 +319,20 @@ class MemoryEfficientMambaTrainer:
         self.model.eval()
 
         metrics = {
-            'loss': 0.0,
-            'position_mae': 0.0,
-            'velocity_mae': 0.0,
-            'position_rmse': 0.0,
-            'velocity_rmse': 0.0,
-            'short_term_rmse': 0.0,
-            'medium_term_rmse': 0.0,
-            'long_term_rmse': 0.0
+            "loss": 0.0,
+            "position_mae": 0.0,
+            "velocity_mae": 0.0,
+            "position_rmse": 0.0,
+            "velocity_rmse": 0.0,
+            "short_term_rmse": 0.0,
+            "medium_term_rmse": 0.0,
+            "long_term_rmse": 0.0,
         }
 
         with torch.no_grad():
             for batch in tqdm(self.val_loader, desc="Validation"):
-                input_seq = batch['input'].to(self.device)
-                target_seq = batch['target'].to(self.device)
+                input_seq = batch["input"].to(self.device)
+                target_seq = batch["target"].to(self.device)
 
                 batch_size, input_len, _ = input_seq.shape
                 _, target_len, _ = target_seq.shape
@@ -352,48 +349,54 @@ class MemoryEfficientMambaTrainer:
                 loss = self.criterion(predictions, target_seq)
 
                 # Compute metrics
-                position_mae = torch.mean(torch.abs(
-                    predictions[:, :, :3] - target_seq[:, :, :3]
-                ))
-                velocity_mae = torch.mean(torch.abs(
-                    predictions[:, :, 3:] - target_seq[:, :, 3:]
-                ))
+                position_mae = torch.mean(
+                    torch.abs(predictions[:, :, :3] - target_seq[:, :, :3])
+                )
+                velocity_mae = torch.mean(
+                    torch.abs(predictions[:, :, 3:] - target_seq[:, :, 3:])
+                )
 
-                position_rmse = torch.sqrt(torch.mean(
-                    (predictions[:, :, :3] - target_seq[:, :, :3]) ** 2
-                ))
-                velocity_rmse = torch.sqrt(torch.mean(
-                    (predictions[:, :, 3:] - target_seq[:, :, 3:]) ** 2
-                ))
+                position_rmse = torch.sqrt(
+                    torch.mean((predictions[:, :, :3] - target_seq[:, :, :3]) ** 2)
+                )
+                velocity_rmse = torch.sqrt(
+                    torch.mean((predictions[:, :, 3:] - target_seq[:, :, 3:]) ** 2)
+                )
 
                 # Horizon-specific RMSE
                 if target_len >= 10:
-                    short_rmse = torch.sqrt(torch.mean(
-                        (predictions[:, :10, :3] - target_seq[:, :10, :3]) ** 2
-                    ))
+                    short_rmse = torch.sqrt(
+                        torch.mean(
+                            (predictions[:, :10, :3] - target_seq[:, :10, :3]) ** 2
+                        )
+                    )
                 else:
                     short_rmse = position_rmse
 
                 if target_len >= 30:
-                    medium_rmse = torch.sqrt(torch.mean(
-                        (predictions[:, 10:30, :3] - target_seq[:, 10:30, :3]) ** 2
-                    ))
-                    long_rmse = torch.sqrt(torch.mean(
-                        (predictions[:, 30:, :3] - target_seq[:, 30:, :3]) ** 2
-                    ))
+                    medium_rmse = torch.sqrt(
+                        torch.mean(
+                            (predictions[:, 10:30, :3] - target_seq[:, 10:30, :3]) ** 2
+                        )
+                    )
+                    long_rmse = torch.sqrt(
+                        torch.mean(
+                            (predictions[:, 30:, :3] - target_seq[:, 30:, :3]) ** 2
+                        )
+                    )
                 else:
                     medium_rmse = position_rmse
                     long_rmse = position_rmse
 
                 # Update metrics
-                metrics['loss'] += loss.item()
-                metrics['position_mae'] += position_mae.item()
-                metrics['velocity_mae'] += velocity_mae.item()
-                metrics['position_rmse'] += position_rmse.item()
-                metrics['velocity_rmse'] += velocity_rmse.item()
-                metrics['short_term_rmse'] += short_rmse.item()
-                metrics['medium_term_rmse'] += medium_rmse.item()
-                metrics['long_term_rmse'] += long_rmse.item()
+                metrics["loss"] += loss.item()
+                metrics["position_mae"] += position_mae.item()
+                metrics["velocity_mae"] += velocity_mae.item()
+                metrics["position_rmse"] += position_rmse.item()
+                metrics["velocity_rmse"] += velocity_rmse.item()
+                metrics["short_term_rmse"] += short_rmse.item()
+                metrics["medium_term_rmse"] += medium_rmse.item()
+                metrics["long_term_rmse"] += long_rmse.item()
 
         # Average metrics
         n_batches = len(self.val_loader)
@@ -416,7 +419,7 @@ class MemoryEfficientMambaTrainer:
             # Update scheduler
             if self.scheduler is not None:
                 if isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                    self.scheduler.step(val_metrics['loss'])
+                    self.scheduler.step(val_metrics["loss"])
                 else:
                     self.scheduler.step()
 
@@ -433,18 +436,16 @@ class MemoryEfficientMambaTrainer:
 
             if self.writer is not None:
                 for key, value in train_metrics.items():
-                    self.writer.add_scalar(f'train/{key}', value, epoch)
+                    self.writer.add_scalar(f"train/{key}", value, epoch)
                 for key, value in val_metrics.items():
-                    self.writer.add_scalar(f'val/{key}', value, epoch)
+                    self.writer.add_scalar(f"val/{key}", value, epoch)
                 self.writer.add_scalar(
-                    'lr',
-                    self.optimizer.param_groups[0]['lr'],
-                    epoch
+                    "lr", self.optimizer.param_groups[0]["lr"], epoch
                 )
 
             # Save checkpoint
-            if val_metrics['loss'] < self.best_val_loss:
-                self.best_val_loss = val_metrics['loss']
+            if val_metrics["loss"] < self.best_val_loss:
+                self.best_val_loss = val_metrics["loss"]
                 self.save_checkpoint(epoch, is_best=True)
                 print(f"  New best model saved!")
 
@@ -460,18 +461,20 @@ class MemoryEfficientMambaTrainer:
     def save_checkpoint(self, epoch: int, is_best: bool = False):
         """Save checkpoint"""
         checkpoint = {
-            'epoch': epoch,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict() if self.scheduler else None,
-            'best_val_loss': self.best_val_loss,
-            'config': self.config
+            "epoch": epoch,
+            "model_state_dict": self.model.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "scheduler_state_dict": (
+                self.scheduler.state_dict() if self.scheduler else None
+            ),
+            "best_val_loss": self.best_val_loss,
+            "config": self.config,
         }
 
         if is_best:
-            path = self.output_dir / 'best.pt'
+            path = self.output_dir / "best.pt"
         else:
-            path = self.output_dir / f'checkpoint_epoch_{epoch}.pt'
+            path = self.output_dir / f"checkpoint_epoch_{epoch}.pt"
 
         torch.save(checkpoint, path)
         print(f"Checkpoint saved to {path}")
@@ -480,26 +483,28 @@ class MemoryEfficientMambaTrainer:
 if __name__ == "__main__":
     # Example training configuration
     config = {
-        'epochs': 100,
-        'batch_size': 16,  # Smaller batch for long sequences
-        'lr': 1e-4,
-        'weight_decay': 1e-5,
-        'chunk_size': 1000,
-        'gradient_checkpointing': True,
-        'grad_clip': 1.0,
-        'scheduler': 'cosine'
+        "epochs": 100,
+        "batch_size": 16,  # Smaller batch for long sequences
+        "lr": 1e-4,
+        "weight_decay": 1e-5,
+        "chunk_size": 1000,
+        "gradient_checkpointing": True,
+        "grad_clip": 1.0,
+        "scheduler": "cosine",
     }
 
     print("Mamba2 Training Script")
     print("=" * 50)
 
     # Check CUDA
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
     if torch.cuda.is_available():
         print(f"GPU: {torch.cuda.get_device_name(0)}")
-        print(f"Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
+        print(
+            f"Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB"
+        )
 
     # Create model
     print("\nInitializing Mamba2 model...")
@@ -508,7 +513,7 @@ if __name__ == "__main__":
         d_state=128,
         d_conv=4,
         n_layers=12,
-        seq_len=5000  # Support very long sequences
+        seq_len=5000,  # Support very long sequences
     )
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
 
@@ -516,12 +521,12 @@ if __name__ == "__main__":
     print("\nCreating dataloaders...")
     try:
         train_loader, val_loader, test_loader = create_dataloaders(
-            dataset_type='orbit',
-            data_path='data/orbits.h5',
-            batch_size=config['batch_size'],
+            dataset_type="orbit",
+            data_path="data/orbits.h5",
+            batch_size=config["batch_size"],
             num_workers=2,  # Fewer workers for large batches
             sequence_length=500,  # Longer input sequences
-            prediction_horizon=500  # Longer predictions
+            prediction_horizon=500,  # Longer predictions
         )
         print(f"Train batches: {len(train_loader)}")
         print(f"Val batches: {len(val_loader)}")
@@ -531,26 +536,21 @@ if __name__ == "__main__":
 
         # Create dataset with synthetic data
         dataset = OrbitDataset(
-            data_path=Path('/tmp/dummy_orbits.h5'),
+            data_path=Path("/tmp/dummy_orbits.h5"),
             sequence_length=500,
-            prediction_horizon=500
+            prediction_horizon=500,
         )
         from torch.utils.data import random_split
+
         train_size = int(0.8 * len(dataset))
         val_size = len(dataset) - train_size
         train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
         train_loader = DataLoader(
-            train_dataset,
-            batch_size=config['batch_size'],
-            shuffle=True,
-            num_workers=0
+            train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0
         )
         val_loader = DataLoader(
-            val_dataset,
-            batch_size=config['batch_size'],
-            shuffle=False,
-            num_workers=0
+            val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0
         )
 
     # Create trainer
@@ -561,7 +561,7 @@ if __name__ == "__main__":
         val_loader=val_loader,
         config=config,
         device=device,
-        output_dir='outputs/mamba_training'
+        output_dir="outputs/mamba_training",
     )
 
     # Start training

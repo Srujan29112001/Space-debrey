@@ -3,24 +3,27 @@ Trajectory Transformer Training
 Sequence-to-sequence training with teacher forcing and multi-object modeling
 """
 
+import random
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from pathlib import Path
-from typing import Dict, Optional, Tuple
-import numpy as np
 from tqdm import tqdm
-from datetime import datetime
-import random
 
 try:
     from torch.utils.tensorboard import SummaryWriter
 except ImportError:
     SummaryWriter = None
 
+from ..trajectory_prediction.transformer.trajectory_transformer import (
+    TrajectoryTransformer,
+)
 from .dataset import OrbitDataset, create_dataloaders
-from ..trajectory_prediction.transformer.trajectory_transformer import TrajectoryTransformer
 
 
 class TransformerTrainer:
@@ -34,8 +37,8 @@ class TransformerTrainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         config: Dict,
-        device: str = 'cuda',
-        output_dir: str = 'outputs/transformer_training'
+        device: str = "cuda",
+        output_dir: str = "outputs/transformer_training",
     ):
         """
         Initialize Transformer trainer
@@ -57,10 +60,10 @@ class TransformerTrainer:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Training parameters
-        self.epochs = config.get('epochs', 100)
-        self.teacher_forcing_ratio = config.get('teacher_forcing_ratio', 0.5)
-        self.teacher_forcing_decay = config.get('teacher_forcing_decay', 0.99)
-        self.warmup_epochs = config.get('warmup_epochs', 10)
+        self.epochs = config.get("epochs", 100)
+        self.teacher_forcing_ratio = config.get("teacher_forcing_ratio", 0.5)
+        self.teacher_forcing_decay = config.get("teacher_forcing_decay", 0.99)
+        self.warmup_epochs = config.get("warmup_epochs", 10)
 
         # Optimizer
         self.optimizer = self._build_optimizer()
@@ -73,12 +76,12 @@ class TransformerTrainer:
 
         # Tensorboard
         if SummaryWriter is not None:
-            self.writer = SummaryWriter(log_dir=str(self.output_dir / 'logs'))
+            self.writer = SummaryWriter(log_dir=str(self.output_dir / "logs"))
         else:
             self.writer = None
 
         # Best metrics
-        self.best_val_loss = float('inf')
+        self.best_val_loss = float("inf")
 
         # Current teacher forcing ratio
         self.current_tf_ratio = self.teacher_forcing_ratio
@@ -90,23 +93,28 @@ class TransformerTrainer:
 
     def _build_optimizer(self) -> optim.Optimizer:
         """Build optimizer with parameter groups"""
-        lr = self.config.get('lr', 1e-4)
-        weight_decay = self.config.get('weight_decay', 1e-5)
+        lr = self.config.get("lr", 1e-4)
+        weight_decay = self.config.get("weight_decay", 1e-5)
 
         # Separate embedding and transformer parameters
         embed_params = []
         transformer_params = []
 
         for name, param in self.model.named_parameters():
-            if 'projection' in name or 'pos_encoder' in name:
+            if "projection" in name or "pos_encoder" in name:
                 embed_params.append(param)
             else:
                 transformer_params.append(param)
 
-        return optim.AdamW([
-            {'params': embed_params, 'lr': lr},
-            {'params': transformer_params, 'lr': lr}
-        ], weight_decay=weight_decay, betas=(0.9, 0.98), eps=1e-9)
+        return optim.AdamW(
+            [
+                {"params": embed_params, "lr": lr},
+                {"params": transformer_params, "lr": lr},
+            ],
+            weight_decay=weight_decay,
+            betas=(0.9, 0.98),
+            eps=1e-9,
+        )
 
     def _build_scheduler(self):
         """Build learning rate scheduler with warmup"""
@@ -119,7 +127,9 @@ class TransformerTrainer:
                 return float(current_step) / float(max(1, warmup_steps))
             else:
                 # Cosine decay
-                progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+                progress = float(current_step - warmup_steps) / float(
+                    max(1, total_steps - warmup_steps)
+                )
                 return max(0.01, 0.5 * (1.0 + np.cos(np.pi * progress)))
 
         return optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
@@ -136,17 +146,13 @@ class TransformerTrainer:
         """
         self.model.train()
 
-        metrics = {
-            'loss': 0.0,
-            'position_mae': 0.0,
-            'velocity_mae': 0.0
-        }
+        metrics = {"loss": 0.0, "position_mae": 0.0, "velocity_mae": 0.0}
 
         pbar = tqdm(self.train_loader, desc=f"Epoch {epoch}/{self.epochs}")
 
         for batch_idx, batch in enumerate(pbar):
-            input_seq = batch['input'].to(self.device)  # [B, T_in, 6]
-            target_seq = batch['target'].to(self.device)  # [B, T_out, 6]
+            input_seq = batch["input"].to(self.device)  # [B, T_in, 6]
+            target_seq = batch["target"].to(self.device)  # [B, T_out, 6]
 
             batch_size, input_len, _ = input_seq.shape
             _, target_len, _ = target_seq.shape
@@ -157,10 +163,13 @@ class TransformerTrainer:
             if use_teacher_forcing:
                 # Teacher forcing: use ground truth as input
                 # Concatenate input and target for decoder input
-                decoder_input = torch.cat([
-                    input_seq[:, -1:, :],  # Last input state
-                    target_seq[:, :-1, :]  # All but last target
-                ], dim=1)
+                decoder_input = torch.cat(
+                    [
+                        input_seq[:, -1:, :],  # Last input state
+                        target_seq[:, :-1, :],  # All but last target
+                    ],
+                    dim=1,
+                )
 
                 # Forward pass
                 predictions = self.model(input_seq, decoder_input)
@@ -193,8 +202,7 @@ class TransformerTrainer:
 
             # Gradient clipping
             torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(),
-                max_norm=self.config.get('grad_clip', 1.0)
+                self.model.parameters(), max_norm=self.config.get("grad_clip", 1.0)
             )
 
             self.optimizer.step()
@@ -202,24 +210,26 @@ class TransformerTrainer:
 
             # Compute metrics
             with torch.no_grad():
-                position_mae = torch.mean(torch.abs(
-                    predictions[:, :, :3] - target_seq[:, :, :3]
-                ))
-                velocity_mae = torch.mean(torch.abs(
-                    predictions[:, :, 3:] - target_seq[:, :, 3:]
-                ))
+                position_mae = torch.mean(
+                    torch.abs(predictions[:, :, :3] - target_seq[:, :, :3])
+                )
+                velocity_mae = torch.mean(
+                    torch.abs(predictions[:, :, 3:] - target_seq[:, :, 3:])
+                )
 
             # Update metrics
-            metrics['loss'] += loss.item()
-            metrics['position_mae'] += position_mae.item()
-            metrics['velocity_mae'] += velocity_mae.item()
+            metrics["loss"] += loss.item()
+            metrics["position_mae"] += position_mae.item()
+            metrics["velocity_mae"] += velocity_mae.item()
 
             # Update progress bar
-            pbar.set_postfix({
-                'loss': f"{loss.item():.6f}",
-                'pos_mae': f"{position_mae.item():.6f}",
-                'tf_ratio': f"{self.current_tf_ratio:.3f}"
-            })
+            pbar.set_postfix(
+                {
+                    "loss": f"{loss.item():.6f}",
+                    "pos_mae": f"{position_mae.item():.6f}",
+                    "tf_ratio": f"{self.current_tf_ratio:.3f}",
+                }
+            )
 
         # Average metrics
         n_batches = len(self.train_loader)
@@ -245,19 +255,19 @@ class TransformerTrainer:
         self.model.eval()
 
         metrics = {
-            'loss': 0.0,
-            'position_mae': 0.0,
-            'velocity_mae': 0.0,
-            'position_rmse': 0.0,
-            'velocity_rmse': 0.0,
-            'position_rmse_1step': 0.0,
-            'position_rmse_final': 0.0
+            "loss": 0.0,
+            "position_mae": 0.0,
+            "velocity_mae": 0.0,
+            "position_rmse": 0.0,
+            "velocity_rmse": 0.0,
+            "position_rmse_1step": 0.0,
+            "position_rmse_final": 0.0,
         }
 
         with torch.no_grad():
             for batch in tqdm(self.val_loader, desc="Validation"):
-                input_seq = batch['input'].to(self.device)
-                target_seq = batch['target'].to(self.device)
+                input_seq = batch["input"].to(self.device)
+                target_seq = batch["target"].to(self.device)
 
                 batch_size, input_len, _ = input_seq.shape
                 _, target_len, _ = target_seq.shape
@@ -278,38 +288,38 @@ class TransformerTrainer:
                 loss = self.criterion(predictions, target_seq)
 
                 # Compute detailed metrics
-                position_mae = torch.mean(torch.abs(
-                    predictions[:, :, :3] - target_seq[:, :, :3]
-                ))
-                velocity_mae = torch.mean(torch.abs(
-                    predictions[:, :, 3:] - target_seq[:, :, 3:]
-                ))
+                position_mae = torch.mean(
+                    torch.abs(predictions[:, :, :3] - target_seq[:, :, :3])
+                )
+                velocity_mae = torch.mean(
+                    torch.abs(predictions[:, :, 3:] - target_seq[:, :, 3:])
+                )
 
-                position_rmse = torch.sqrt(torch.mean(
-                    (predictions[:, :, :3] - target_seq[:, :, :3]) ** 2
-                ))
-                velocity_rmse = torch.sqrt(torch.mean(
-                    (predictions[:, :, 3:] - target_seq[:, :, 3:]) ** 2
-                ))
+                position_rmse = torch.sqrt(
+                    torch.mean((predictions[:, :, :3] - target_seq[:, :, :3]) ** 2)
+                )
+                velocity_rmse = torch.sqrt(
+                    torch.mean((predictions[:, :, 3:] - target_seq[:, :, 3:]) ** 2)
+                )
 
                 # First step error
-                position_rmse_1step = torch.sqrt(torch.mean(
-                    (predictions[:, 0, :3] - target_seq[:, 0, :3]) ** 2
-                ))
+                position_rmse_1step = torch.sqrt(
+                    torch.mean((predictions[:, 0, :3] - target_seq[:, 0, :3]) ** 2)
+                )
 
                 # Final step error
-                position_rmse_final = torch.sqrt(torch.mean(
-                    (predictions[:, -1, :3] - target_seq[:, -1, :3]) ** 2
-                ))
+                position_rmse_final = torch.sqrt(
+                    torch.mean((predictions[:, -1, :3] - target_seq[:, -1, :3]) ** 2)
+                )
 
                 # Update metrics
-                metrics['loss'] += loss.item()
-                metrics['position_mae'] += position_mae.item()
-                metrics['velocity_mae'] += velocity_mae.item()
-                metrics['position_rmse'] += position_rmse.item()
-                metrics['velocity_rmse'] += velocity_rmse.item()
-                metrics['position_rmse_1step'] += position_rmse_1step.item()
-                metrics['position_rmse_final'] += position_rmse_final.item()
+                metrics["loss"] += loss.item()
+                metrics["position_mae"] += position_mae.item()
+                metrics["velocity_mae"] += velocity_mae.item()
+                metrics["position_rmse"] += position_rmse.item()
+                metrics["velocity_rmse"] += velocity_rmse.item()
+                metrics["position_rmse_1step"] += position_rmse_1step.item()
+                metrics["position_rmse_final"] += position_rmse_final.item()
 
         # Average metrics
         n_batches = len(self.val_loader)
@@ -342,23 +352,19 @@ class TransformerTrainer:
 
             if self.writer is not None:
                 for key, value in train_metrics.items():
-                    self.writer.add_scalar(f'train/{key}', value, epoch)
+                    self.writer.add_scalar(f"train/{key}", value, epoch)
                 for key, value in val_metrics.items():
-                    self.writer.add_scalar(f'val/{key}', value, epoch)
+                    self.writer.add_scalar(f"val/{key}", value, epoch)
                 self.writer.add_scalar(
-                    'teacher_forcing_ratio',
-                    self.current_tf_ratio,
-                    epoch
+                    "teacher_forcing_ratio", self.current_tf_ratio, epoch
                 )
                 self.writer.add_scalar(
-                    'lr',
-                    self.optimizer.param_groups[0]['lr'],
-                    epoch
+                    "lr", self.optimizer.param_groups[0]["lr"], epoch
                 )
 
             # Save checkpoint
-            if val_metrics['loss'] < self.best_val_loss:
-                self.best_val_loss = val_metrics['loss']
+            if val_metrics["loss"] < self.best_val_loss:
+                self.best_val_loss = val_metrics["loss"]
                 self.save_checkpoint(epoch, is_best=True)
                 print(f"  New best model saved!")
 
@@ -374,19 +380,19 @@ class TransformerTrainer:
     def save_checkpoint(self, epoch: int, is_best: bool = False):
         """Save checkpoint"""
         checkpoint = {
-            'epoch': epoch,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict(),
-            'best_val_loss': self.best_val_loss,
-            'teacher_forcing_ratio': self.current_tf_ratio,
-            'config': self.config
+            "epoch": epoch,
+            "model_state_dict": self.model.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "scheduler_state_dict": self.scheduler.state_dict(),
+            "best_val_loss": self.best_val_loss,
+            "teacher_forcing_ratio": self.current_tf_ratio,
+            "config": self.config,
         }
 
         if is_best:
-            path = self.output_dir / 'best.pt'
+            path = self.output_dir / "best.pt"
         else:
-            path = self.output_dir / f'checkpoint_epoch_{epoch}.pt'
+            path = self.output_dir / f"checkpoint_epoch_{epoch}.pt"
 
         torch.save(checkpoint, path)
         print(f"Checkpoint saved to {path}")
@@ -395,14 +401,16 @@ class TransformerTrainer:
         """Load checkpoint"""
         checkpoint = torch.load(checkpoint_path, map_location=self.device)
 
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.model.load_state_dict(checkpoint["model_state_dict"])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
-        if 'scheduler_state_dict' in checkpoint and checkpoint['scheduler_state_dict']:
-            self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        if "scheduler_state_dict" in checkpoint and checkpoint["scheduler_state_dict"]:
+            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
-        self.current_tf_ratio = checkpoint.get('teacher_forcing_ratio', self.teacher_forcing_ratio)
-        self.best_val_loss = checkpoint.get('best_val_loss', float('inf'))
+        self.current_tf_ratio = checkpoint.get(
+            "teacher_forcing_ratio", self.teacher_forcing_ratio
+        )
+        self.best_val_loss = checkpoint.get("best_val_loss", float("inf"))
 
         print(f"Checkpoint loaded from {checkpoint_path}")
         print(f"  Epoch: {checkpoint['epoch']}")
@@ -412,21 +420,21 @@ class TransformerTrainer:
 if __name__ == "__main__":
     # Example training configuration
     config = {
-        'epochs': 100,
-        'batch_size': 32,
-        'lr': 1e-4,
-        'weight_decay': 1e-5,
-        'teacher_forcing_ratio': 0.5,
-        'teacher_forcing_decay': 0.99,
-        'warmup_epochs': 10,
-        'grad_clip': 1.0
+        "epochs": 100,
+        "batch_size": 32,
+        "lr": 1e-4,
+        "weight_decay": 1e-5,
+        "teacher_forcing_ratio": 0.5,
+        "teacher_forcing_decay": 0.99,
+        "warmup_epochs": 10,
+        "grad_clip": 1.0,
     }
 
     print("Transformer Training Script")
     print("=" * 50)
 
     # Check CUDA
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
     # Create model
@@ -437,7 +445,7 @@ if __name__ == "__main__":
         num_encoder_layers=6,
         num_decoder_layers=6,
         dim_feedforward=2048,
-        dropout=0.1
+        dropout=0.1,
     )
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
 
@@ -445,12 +453,12 @@ if __name__ == "__main__":
     print("\nCreating dataloaders...")
     try:
         train_loader, val_loader, test_loader = create_dataloaders(
-            dataset_type='orbit',
-            data_path='data/orbits.h5',
-            batch_size=config['batch_size'],
+            dataset_type="orbit",
+            data_path="data/orbits.h5",
+            batch_size=config["batch_size"],
             num_workers=4,
             sequence_length=100,
-            prediction_horizon=50
+            prediction_horizon=50,
         )
         print(f"Train batches: {len(train_loader)}")
         print(f"Val batches: {len(val_loader)}")
@@ -460,26 +468,21 @@ if __name__ == "__main__":
 
         # Create dataset with synthetic data
         dataset = OrbitDataset(
-            data_path=Path('/tmp/dummy_orbits.h5'),
+            data_path=Path("/tmp/dummy_orbits.h5"),
             sequence_length=100,
-            prediction_horizon=50
+            prediction_horizon=50,
         )
         from torch.utils.data import random_split
+
         train_size = int(0.8 * len(dataset))
         val_size = len(dataset) - train_size
         train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
         train_loader = DataLoader(
-            train_dataset,
-            batch_size=config['batch_size'],
-            shuffle=True,
-            num_workers=0
+            train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0
         )
         val_loader = DataLoader(
-            val_dataset,
-            batch_size=config['batch_size'],
-            shuffle=False,
-            num_workers=0
+            val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0
         )
 
     # Create trainer
@@ -490,7 +493,7 @@ if __name__ == "__main__":
         val_loader=val_loader,
         config=config,
         device=device,
-        output_dir='outputs/transformer_training'
+        output_dir="outputs/transformer_training",
     )
 
     # Start training

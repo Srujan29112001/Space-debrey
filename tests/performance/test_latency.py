@@ -3,14 +3,17 @@ Performance Tests - Latency
 Measure system response latency
 """
 
-import pytest
-import numpy as np
 import time
 from unittest.mock import patch
 
+import numpy as np
+import pytest
+
 from space_debris_tracker.computer_vision.detector import SpaceDebrisDetector
-from space_debris_tracker.trajectory_prediction.orbit_predictor import OrbitPredictionEngine
-from tests.utils import generate_space_image, generate_orbital_state, Timer
+from space_debris_tracker.trajectory_prediction.orbit_predictor import (
+    OrbitPredictionEngine,
+)
+from tests.utils import Timer, generate_orbital_state, generate_space_image
 
 
 @pytest.mark.performance
@@ -19,8 +22,8 @@ class TestDetectionLatency:
 
     def test_single_image_latency(self, sample_telescope_image):
         """Measure single image detection latency"""
-        with patch('torch.hub.load'):
-            detector = SpaceDebrisDetector(device='cpu')
+        with patch("torch.hub.load"):
+            detector = SpaceDebrisDetector(device="cpu")
             detector.yolo.detect = lambda x: []
 
             latencies = []
@@ -47,7 +50,7 @@ class TestDetectionLatency:
     def test_preprocessing_latency(self, sample_telescope_image):
         """Measure preprocessing latency"""
         from space_debris_tracker.computer_vision.preprocessing.space_image import (
-            SpaceImagePreprocessor
+            SpaceImagePreprocessor,
         )
 
         preprocessor = SpaceImagePreprocessor()
@@ -62,8 +65,8 @@ class TestDetectionLatency:
 
     def test_detection_breakdown(self, sample_telescope_image):
         """Measure latency breakdown"""
-        with patch('torch.hub.load'):
-            detector = SpaceDebrisDetector(device='cpu')
+        with patch("torch.hub.load"):
+            detector = SpaceDebrisDetector(device="cpu")
 
             # Mock individual components
             yolo_times = []
@@ -100,7 +103,7 @@ class TestPredictionLatency:
 
     def test_short_term_prediction_latency(self, sample_state_vector):
         """Measure short-term prediction latency"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         latencies = []
 
@@ -110,7 +113,7 @@ class TestPredictionLatency:
                     initial_state=sample_state_vector,
                     time_horizon=3600,
                     dt=60.0,
-                    include_uncertainty=False
+                    include_uncertainty=False,
                 )
 
             latencies.append(timer.elapsed)
@@ -127,7 +130,7 @@ class TestPredictionLatency:
 
     def test_collision_assessment_latency(self):
         """Measure collision assessment latency"""
-        predictor = OrbitPredictionEngine(device='cpu')
+        predictor = OrbitPredictionEngine(device="cpu")
 
         state1 = generate_orbital_state(altitude=400.0)
         state2 = generate_orbital_state(altitude=405.0)
@@ -136,9 +139,7 @@ class TestPredictionLatency:
 
         with Timer() as timer:
             predictor.predict_trajectory(
-                initial_state=state1,
-                time_horizon=3600,
-                dt=60.0
+                initial_state=state1, time_horizon=3600, dt=60.0
             )
 
         print(f"\nCollision assessment latency: {timer.elapsed*1000:.2f}ms")
@@ -148,7 +149,7 @@ class TestPredictionLatency:
     def test_propagation_step_latency(self, sample_state_vector):
         """Measure single propagation step latency"""
         from space_debris_tracker.trajectory_prediction.physics.orbital_mechanics import (
-            OrbitalMechanics
+            OrbitalMechanics,
         )
 
         mechanics = OrbitalMechanics()
@@ -161,9 +162,7 @@ class TestPredictionLatency:
         for _ in range(100):
             with Timer() as timer:
                 mechanics.propagate(
-                    position, velocity, dt=60.0,
-                    include_j2=True,
-                    include_drag=True
+                    position, velocity, dt=60.0, include_j2=True, include_drag=True
                 )
 
             latencies.append(timer.elapsed)
@@ -223,10 +222,10 @@ class TestAPILatency:
             response = api_test_client.post(
                 "/api/conjunctions/assess",
                 json={
-                    'primary_id': 25544,
-                    'secondary_id': 'DEBRIS_12345',
-                    'time_horizon': 604800
-                }
+                    "primary_id": 25544,
+                    "secondary_id": "DEBRIS_12345",
+                    "time_horizon": 604800,
+                },
             )
 
         assert response.status_code == 200
@@ -242,11 +241,13 @@ class TestDatabaseLatency:
 
     def test_neo4j_query_latency(self, mock_neo4j_driver):
         """Measure Neo4j query latency"""
-        with patch('space_debris_tracker.knowledge_graph.space_knowledge_graph.GraphDatabase') as mock_gdb:
+        with patch(
+            "space_debris_tracker.knowledge_graph.space_knowledge_graph.GraphDatabase"
+        ) as mock_gdb:
             mock_gdb.driver.return_value = mock_neo4j_driver
 
             from space_debris_tracker.knowledge_graph.space_knowledge_graph import (
-                SpaceKnowledgeGraph
+                SpaceKnowledgeGraph,
             )
 
             kg = SpaceKnowledgeGraph()
@@ -261,11 +262,13 @@ class TestDatabaseLatency:
 
     def test_satellite_lookup_latency(self, mock_neo4j_driver):
         """Measure satellite lookup latency"""
-        with patch('space_debris_tracker.knowledge_graph.space_knowledge_graph.GraphDatabase') as mock_gdb:
+        with patch(
+            "space_debris_tracker.knowledge_graph.space_knowledge_graph.GraphDatabase"
+        ) as mock_gdb:
             mock_gdb.driver.return_value = mock_neo4j_driver
 
             from space_debris_tracker.knowledge_graph.space_knowledge_graph import (
-                SpaceKnowledgeGraph
+                SpaceKnowledgeGraph,
             )
 
             kg = SpaceKnowledgeGraph()
@@ -274,11 +277,9 @@ class TestDatabaseLatency:
 
             for i in range(10):
                 with Timer() as timer:
-                    kg.add_satellite({
-                        'norad_id': 25544 + i,
-                        'name': f'SAT_{i}',
-                        'operator': 'TEST'
-                    })
+                    kg.add_satellite(
+                        {"norad_id": 25544 + i, "name": f"SAT_{i}", "operator": "TEST"}
+                    )
 
                 latencies.append(timer.elapsed)
 
@@ -297,8 +298,8 @@ class TestLatencyUnderLoad:
         """Measure detection latency under concurrent load"""
         import concurrent.futures
 
-        with patch('torch.hub.load'):
-            detector = SpaceDebrisDetector(device='cpu')
+        with patch("torch.hub.load"):
+            detector = SpaceDebrisDetector(device="cpu")
             detector.yolo.detect = lambda x: []
 
             images = [generate_space_image()[0] for _ in range(20)]

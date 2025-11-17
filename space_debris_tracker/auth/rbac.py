@@ -2,16 +2,17 @@
 Role-Based Access Control (RBAC) for Space Debris Tracking System
 """
 
-from enum import Enum
-from typing import Set, Callable
-from functools import wraps
 import logging
+from enum import Enum
+from functools import wraps
+from typing import Callable, Set
 
 logger = logging.getLogger(__name__)
 
 
 class Permission(Enum):
     """System permissions"""
+
     # Data access
     READ_TLE = "read:tle"
     READ_DETECTIONS = "read:detections"
@@ -42,6 +43,7 @@ class Permission(Enum):
 
 class Role(Enum):
     """System roles with associated permissions"""
+
     ADMIN = "admin"
     OPERATOR = "operator"
     ANALYST = "analyst"
@@ -71,7 +73,6 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.VIEW_SYSTEM_METRICS,
         Permission.CONFIGURE_SYSTEM,
     },
-
     Role.OPERATOR: {
         # Operational access
         Permission.READ_TLE,
@@ -84,7 +85,6 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.CONFIGURE_AGENTS,
         Permission.VIEW_SYSTEM_METRICS,
     },
-
     Role.ANALYST: {
         # Analysis and training
         Permission.READ_TLE,
@@ -95,7 +95,6 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.EVALUATE_MODELS,
         Permission.VIEW_SYSTEM_METRICS,
     },
-
     Role.VIEWER: {
         # Read-only access
         Permission.READ_TLE,
@@ -103,7 +102,6 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.READ_TRAJECTORIES,
         Permission.READ_CONJUNCTIONS,
     },
-
     Role.API_USER: {
         # API access only
         Permission.READ_TLE,
@@ -176,33 +174,38 @@ def require_permission(permission: Permission):
         def get_tle_data():
             pass
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
             # Extract user roles from context
             # In practice, this would come from the request context
-            user_roles = kwargs.get('user_roles', [])
+            user_roles = kwargs.get("user_roles", [])
 
             if not RBACManager.has_permission(user_roles, permission):
                 from fastapi import HTTPException
+
                 raise HTTPException(
                     status_code=403,
-                    detail=f"Missing required permission: {permission.value}"
+                    detail=f"Missing required permission: {permission.value}",
                 )
 
             return await func(*args, **kwargs)
 
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
-            user_roles = kwargs.get('user_roles', [])
+            user_roles = kwargs.get("user_roles", [])
 
             if not RBACManager.has_permission(user_roles, permission):
-                raise PermissionError(f"Missing required permission: {permission.value}")
+                raise PermissionError(
+                    f"Missing required permission: {permission.value}"
+                )
 
             return func(*args, **kwargs)
 
         # Return appropriate wrapper based on function type
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         else:
@@ -217,16 +220,16 @@ if __name__ == "__main__":
     manager = RBACManager()
 
     # Admin has all permissions
-    admin_perms = manager.get_user_permissions(['admin'])
+    admin_perms = manager.get_user_permissions(["admin"])
     print(f"Admin permissions: {len(admin_perms)}")
 
     # Viewer only has read permissions
-    viewer_perms = manager.get_user_permissions(['viewer'])
+    viewer_perms = manager.get_user_permissions(["viewer"])
     print(f"Viewer permissions: {len(viewer_perms)}")
 
     # Check specific permission
-    can_train = manager.has_permission(['analyst'], Permission.TRAIN_MODELS)
+    can_train = manager.has_permission(["analyst"], Permission.TRAIN_MODELS)
     print(f"Analyst can train models: {can_train}")
 
-    can_manage = manager.has_permission(['operator'], Permission.MANAGE_USERS)
+    can_manage = manager.has_permission(["operator"], Permission.MANAGE_USERS)
     print(f"Operator can manage users: {can_manage}")

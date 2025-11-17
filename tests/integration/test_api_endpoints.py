@@ -3,9 +3,10 @@ Integration Tests for API Endpoints
 Tests REST API, GraphQL, and WebSocket endpoints
 """
 
+from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
-from datetime import datetime
 
 from space_debris_tracker.api.server import app
 
@@ -27,9 +28,9 @@ class TestRESTAPI:
         assert response.status_code == 200
         data = response.json()
 
-        assert 'satellites' in data
-        assert 'count' in data
-        assert isinstance(data['satellites'], list)
+        assert "satellites" in data
+        assert "count" in data
+        assert isinstance(data["satellites"], list)
 
     def test_list_satellites_pagination(self, client):
         """Test satellite list pagination"""
@@ -38,8 +39,8 @@ class TestRESTAPI:
         assert response.status_code == 200
         data = response.json()
 
-        assert data['limit'] == 10
-        assert data['offset'] == 0
+        assert data["limit"] == 10
+        assert data["offset"] == 0
 
     def test_get_satellite_by_id(self, client):
         """Test GET /satellites/{norad_id}"""
@@ -48,9 +49,9 @@ class TestRESTAPI:
         assert response.status_code == 200
         data = response.json()
 
-        assert data['norad_id'] == 25544
-        assert 'name' in data
-        assert 'orbit' in data
+        assert data["norad_id"] == 25544
+        assert "name" in data
+        assert "orbit" in data
 
     def test_get_nonexistent_satellite(self, client):
         """Test GET for nonexistent satellite"""
@@ -67,10 +68,10 @@ class TestRESTAPI:
         assert response.status_code == 200
         data = response.json()
 
-        assert 'trajectory' in data
-        assert 'time' in data['trajectory']
-        assert 'position' in data['trajectory']
-        assert 'velocity' in data['trajectory']
+        assert "trajectory" in data
+        assert "time" in data["trajectory"]
+        assert "position" in data["trajectory"]
+        assert "velocity" in data["trajectory"]
 
     def test_list_conjunctions(self, client):
         """Test GET /conjunctions"""
@@ -79,8 +80,8 @@ class TestRESTAPI:
         assert response.status_code == 200
         data = response.json()
 
-        assert 'conjunctions' in data
-        assert 'count' in data
+        assert "conjunctions" in data
+        assert "count" in data
 
     def test_filter_conjunctions_by_satellite(self, client):
         """Test conjunction filtering"""
@@ -89,29 +90,29 @@ class TestRESTAPI:
         assert response.status_code == 200
         data = response.json()
 
-        assert 'conjunctions' in data
+        assert "conjunctions" in data
 
         # All conjunctions should involve satellite 25544
-        for conj in data['conjunctions']:
-            assert conj['primary_object'] == 25544
+        for conj in data["conjunctions"]:
+            assert conj["primary_object"] == 25544
 
     def test_assess_conjunction(self, client):
         """Test POST /conjunctions/assess"""
         response = client.post(
             "/api/conjunctions/assess",
             json={
-                'primary_id': 25544,
-                'secondary_id': 'DEBRIS_12345',
-                'time_horizon': 604800
-            }
+                "primary_id": 25544,
+                "secondary_id": "DEBRIS_12345",
+                "time_horizon": 604800,
+            },
         )
 
         assert response.status_code == 200
         data = response.json()
 
-        assert 'tca' in data
-        assert 'miss_distance' in data
-        assert 'collision_probability' in data
+        assert "tca" in data
+        assert "miss_distance" in data
+        assert "collision_probability" in data
 
     def test_get_debris_population(self, client):
         """Test GET /debris/population"""
@@ -122,27 +123,27 @@ class TestRESTAPI:
         assert response.status_code == 200
         data = response.json()
 
-        assert 'total_objects' in data
-        assert 'by_size' in data
-        assert 'by_origin' in data
+        assert "total_objects" in data
+        assert "by_size" in data
+        assert "by_origin" in data
 
     def test_calculate_maneuver(self, client):
         """Test POST /maneuvers/calculate"""
         response = client.post(
             "/api/maneuvers/calculate",
             json={
-                'satellite_id': 25544,
-                'conjunction_id': 'CONJ_123',
-                'constraints': {}
-            }
+                "satellite_id": 25544,
+                "conjunction_id": "CONJ_123",
+                "constraints": {},
+            },
         )
 
         assert response.status_code == 200
         data = response.json()
 
-        assert 'delta_v' in data
-        assert 'magnitude' in data
-        assert 'execution_time' in data
+        assert "delta_v" in data
+        assert "magnitude" in data
+        assert "execution_time" in data
 
     def test_get_risk_matrix(self, client):
         """Test GET /analytics/risk-matrix"""
@@ -151,16 +152,13 @@ class TestRESTAPI:
         assert response.status_code == 200
         data = response.json()
 
-        assert 'satellites_at_risk' in data
-        assert 'high_risk_conjunctions' in data
+        assert "satellites_at_risk" in data
+        assert "high_risk_conjunctions" in data
 
     def test_invalid_request_format(self, client):
         """Test invalid request handling"""
         response = client.post(
-            "/api/conjunctions/assess",
-            json={
-                'invalid_field': 'test'
-            }
+            "/api/conjunctions/assess", json={"invalid_field": "test"}
         )
 
         # Should return 422 (validation error)
@@ -174,13 +172,16 @@ class TestRESTAPI:
         # This depends on CORS middleware setup
         assert response.status_code in [200, 405]
 
-    @pytest.mark.parametrize("endpoint", [
-        "/api/satellites",
-        "/api/satellites/25544",
-        "/api/conjunctions",
-        "/api/debris/population",
-        "/api/analytics/risk-matrix"
-    ])
+    @pytest.mark.parametrize(
+        "endpoint",
+        [
+            "/api/satellites",
+            "/api/satellites/25544",
+            "/api/conjunctions",
+            "/api/debris/population",
+            "/api/analytics/risk-matrix",
+        ],
+    )
     def test_endpoint_accessibility(self, client, endpoint):
         """Test all endpoints are accessible"""
         response = client.get(endpoint)
@@ -221,10 +222,7 @@ class TestGraphQLAPI:
         }
         """
 
-        response = client.post(
-            "/graphql",
-            json={'query': query}
-        )
+        response = client.post("/graphql", json={"query": query})
 
         # GraphQL endpoint might not be implemented
         # Check if endpoint exists
@@ -243,10 +241,7 @@ class TestGraphQLAPI:
         }
         """
 
-        response = client.post(
-            "/graphql",
-            json={'query': query}
-        )
+        response = client.post("/graphql", json={"query": query})
 
         if response.status_code != 404:
             assert response.status_code in [200, 400]
@@ -266,10 +261,7 @@ class TestGraphQLAPI:
         }
         """
 
-        response = client.post(
-            "/graphql",
-            json={'query': mutation}
-        )
+        response = client.post("/graphql", json={"query": mutation})
 
         if response.status_code != 404:
             assert response.status_code in [200, 400]
@@ -305,10 +297,7 @@ class TestWebSocketAPI:
         try:
             with client.websocket_connect("/ws/detections") as websocket:
                 # Send subscription
-                websocket.send_json({
-                    'type': 'subscribe',
-                    'topic': 'detections'
-                })
+                websocket.send_json({"type": "subscribe", "topic": "detections"})
 
                 # Receive data
                 data = websocket.receive_json(timeout=1.0)
@@ -326,10 +315,7 @@ class TestWebSocketAPI:
         try:
             with client.websocket_connect("/ws/conjunctions") as websocket:
                 # Subscribe to conjunction updates
-                websocket.send_json({
-                    'type': 'subscribe',
-                    'satellite_id': 25544
-                })
+                websocket.send_json({"type": "subscribe", "satellite_id": 25544})
 
                 # Should receive updates
                 # (This test depends on implementation)
@@ -363,8 +349,7 @@ class TestAPIAuthentication:
         token = "mock_jwt_token"
 
         response = client.get(
-            "/api/satellites",
-            headers={"Authorization": f"Bearer {token}"}
+            "/api/satellites", headers={"Authorization": f"Bearer {token}"}
         )
 
         # Should process request
@@ -372,10 +357,7 @@ class TestAPIAuthentication:
 
     def test_api_key_authentication(self, client):
         """Test API key authentication"""
-        response = client.get(
-            "/api/satellites",
-            headers={"X-API-Key": "test_api_key"}
-        )
+        response = client.get("/api/satellites", headers={"X-API-Key": "test_api_key"})
 
         assert response.status_code in [200, 401, 403]
 

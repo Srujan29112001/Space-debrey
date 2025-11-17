@@ -3,16 +3,19 @@ Unit Tests for DeepSORT Tracker
 Tests multi-object tracking functionality
 """
 
-import pytest
-import numpy as np
 from unittest.mock import Mock, patch
 
+import numpy as np
+import pytest
+
+from space_debris_tracker.computer_vision.detector import Detection
 from space_debris_tracker.computer_vision.tracking.deepsort import (
     DeepSORTTracker,
     KalmanFilter,
-    Track as DeepSORTTrack
 )
-from space_debris_tracker.computer_vision.detector import Detection
+from space_debris_tracker.computer_vision.tracking.deepsort import (
+    Track as DeepSORTTrack,
+)
 from tests.utils import generate_detections
 
 
@@ -23,11 +26,7 @@ class TestDeepSORTTracker:
     def test_tracker_initialization(self):
         """Test tracker initialization"""
         tracker = DeepSORTTracker(
-            max_dist=0.2,
-            min_confidence=0.3,
-            max_iou_distance=0.7,
-            max_age=70,
-            n_init=3
+            max_dist=0.2, min_confidence=0.3, max_iou_distance=0.7, max_age=70, n_init=3
         )
 
         assert tracker is not None
@@ -54,8 +53,8 @@ class TestDeepSORTTracker:
             bbox=(100, 100, 150, 150),
             confidence=0.95,
             class_id=0,
-            class_name='debris',
-            features=np.random.randn(128)
+            class_name="debris",
+            features=np.random.randn(128),
         )
 
         tracks = tracker.update([detection], sample_telescope_image)
@@ -73,11 +72,11 @@ class TestDeepSORTTracker:
             # Generate detections
             detections = [
                 Detection(
-                    bbox=(100 + i*10, 100 + i*10, 150 + i*10, 150 + i*10),
+                    bbox=(100 + i * 10, 100 + i * 10, 150 + i * 10, 150 + i * 10),
                     confidence=0.95,
                     class_id=0,
-                    class_name='debris',
-                    features=np.random.randn(128)
+                    class_name="debris",
+                    features=np.random.randn(128),
                 )
                 for i in range(3)
             ]
@@ -97,8 +96,8 @@ class TestDeepSORTTracker:
             bbox=(100, 100, 150, 150),
             confidence=0.95,
             class_id=0,
-            class_name='debris',
-            features=np.random.randn(128)
+            class_name="debris",
+            features=np.random.randn(128),
         )
 
         frame = np.random.randint(0, 255, (1024, 1024, 3), dtype=np.uint8)
@@ -118,8 +117,8 @@ class TestDeepSORTTracker:
             bbox=(100, 100, 150, 150),
             confidence=0.95,
             class_id=0,
-            class_name='debris',
-            features=np.random.randn(128)
+            class_name="debris",
+            features=np.random.randn(128),
         )
 
         frame = np.random.randint(0, 255, (1024, 1024, 3), dtype=np.uint8)
@@ -140,8 +139,8 @@ class TestDeepSORTTracker:
             bbox=(100, 100, 150, 150),
             confidence=0.95,
             class_id=0,
-            class_name='debris',
-            features=np.random.randn(128)
+            class_name="debris",
+            features=np.random.randn(128),
         )
 
         frame = np.random.randint(0, 255, (1024, 1024, 3), dtype=np.uint8)
@@ -161,10 +160,7 @@ class TestDeepSORTTracker:
         tracker = DeepSORTTracker()
 
         detection = Detection(
-            bbox=(100, 100, 150, 150),
-            confidence=0.95,
-            class_id=0,
-            class_name='debris'
+            bbox=(100, 100, 150, 150), confidence=0.95, class_id=0, class_name="debris"
         )
 
         # Extract features
@@ -255,14 +251,12 @@ class TestTrackManagement:
             bbox=(100, 100, 150, 150),
             confidence=0.95,
             class_id=0,
-            class_name='debris',
-            features=np.random.randn(128)
+            class_name="debris",
+            features=np.random.randn(128),
         )
 
         track = DeepSORTTrack(
-            track_id=1,
-            detection=detection,
-            feature=detection.features
+            track_id=1, detection=detection, feature=detection.features
         )
 
         assert track is not None
@@ -274,14 +268,12 @@ class TestTrackManagement:
             bbox=(100, 100, 150, 150),
             confidence=0.95,
             class_id=0,
-            class_name='debris',
-            features=np.random.randn(128)
+            class_name="debris",
+            features=np.random.randn(128),
         )
 
         track = DeepSORTTrack(
-            track_id=1,
-            detection=detection,
-            feature=detection.features
+            track_id=1, detection=detection, feature=detection.features
         )
 
         # Update with new detection
@@ -289,8 +281,8 @@ class TestTrackManagement:
             bbox=(105, 105, 155, 155),
             confidence=0.92,
             class_id=0,
-            class_name='debris',
-            features=np.random.randn(128)
+            class_name="debris",
+            features=np.random.randn(128),
         )
 
         track.update(new_detection)
@@ -304,14 +296,12 @@ class TestTrackManagement:
             bbox=(100, 100, 150, 150),
             confidence=0.95,
             class_id=0,
-            class_name='debris',
-            features=np.random.randn(128)
+            class_name="debris",
+            features=np.random.randn(128),
         )
 
         track = DeepSORTTrack(
-            track_id=1,
-            detection=detection,
-            feature=detection.features
+            track_id=1, detection=detection, feature=detection.features
         )
 
         initial_age = track.time_since_update
@@ -329,8 +319,8 @@ class TestTrackManagement:
             bbox=(100, 100, 150, 150),
             confidence=0.95,
             class_id=0,
-            class_name='debris',
-            features=np.random.randn(128)
+            class_name="debris",
+            features=np.random.randn(128),
         )
 
         frame = np.random.randint(0, 255, (1024, 1024, 3), dtype=np.uint8)

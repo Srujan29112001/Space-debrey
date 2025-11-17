@@ -3,21 +3,23 @@ Space Debris Detection System
 Combines YOLOv7, DINO v2, and DeepSORT for comprehensive debris detection and tracking
 """
 
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
+import cv2
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
-import cv2
 
+from .characterization.gaussian_splatting import GaussianSplatting3D
 from .preprocessing.space_image import SpaceImagePreprocessor
 from .tracking.deepsort import DeepSORTTracker
-from .characterization.gaussian_splatting import GaussianSplatting3D
 
 
 @dataclass
 class Detection:
     """Single debris detection"""
+
     bbox: Tuple[int, int, int, int]  # x1, y1, x2, y2
     confidence: float
     class_id: int
@@ -28,6 +30,7 @@ class Detection:
 @dataclass
 class Track:
     """Tracked debris object"""
+
     track_id: int
     bbox: Tuple[int, int, int, int]
     velocity: Tuple[float, float]
@@ -68,7 +71,7 @@ class AttentionModule(nn.Module):
             nn.Conv2d(channels, channels // 16, 1),
             nn.ReLU(),
             nn.Conv2d(channels // 16, channels, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
@@ -127,8 +130,7 @@ class SpaceFeatureExtractor(nn.Module):
 
         # Output features
         self.output = nn.Sequential(
-            nn.Conv2d(256, 512, 1),
-            nn.AdaptiveAvgPool2d((1, 1))
+            nn.Conv2d(256, 512, 1), nn.AdaptiveAvgPool2d((1, 1))
         )
 
     def forward(self, x, x_prev=None):
@@ -146,8 +148,14 @@ class YOLOv7Detector(nn.Module):
     Simplified implementation - in production, use official YOLOv7
     """
 
-    def __init__(self, weights_path: Optional[str] = None, conf_thres: float = 0.25,
-                 iou_thres: float = 0.45, img_size: int = 1280, device: str = 'cuda:0'):
+    def __init__(
+        self,
+        weights_path: Optional[str] = None,
+        conf_thres: float = 0.25,
+        iou_thres: float = 0.45,
+        img_size: int = 1280,
+        device: str = "cuda:0",
+    ):
         super().__init__()
         self.conf_thres = conf_thres
         self.iou_thres = iou_thres
@@ -224,7 +232,9 @@ class YOLOv7Detector(nn.Module):
         img = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0)
         return img.to(self.device)
 
-    def _postprocess(self, features: torch.Tensor, orig_shape: Tuple) -> List[Detection]:
+    def _postprocess(
+        self, features: torch.Tensor, orig_shape: Tuple
+    ) -> List[Detection]:
         """Post-process YOLO output"""
         # Simplified - in production implement full YOLO post-processing
         detections = []
@@ -240,12 +250,12 @@ class DINOv2Detector:
     DINO v2 for zero-shot novel object detection
     """
 
-    def __init__(self, device: str = 'cuda:0'):
+    def __init__(self, device: str = "cuda:0"):
         self.device = device
 
         # Load DINO v2 model
         try:
-            self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
+            self.model = torch.hub.load("facebookresearch/dinov2", "dinov2_vitb14")
             self.model.to(device)
             self.model.eval()
             print("Loaded DINO v2 model")
@@ -269,8 +279,9 @@ class DINOv2Detector:
 
         return features.squeeze()
 
-    def detect_novel_objects(self, image: np.ndarray,
-                            threshold: float = 0.5) -> List[Detection]:
+    def detect_novel_objects(
+        self, image: np.ndarray, threshold: float = 0.5
+    ) -> List[Detection]:
         """Detect novel objects using DINO features"""
         features = self.extract_features(image)
 
@@ -287,9 +298,11 @@ class SpaceDebrisDetector:
     Integrates YOLOv7, DINO v2, DeepSORT, and 3D Gaussian Splatting
     """
 
-    def __init__(self,
-                 yolo_weights: Optional[str] = None,
-                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu'):
+    def __init__(
+        self,
+        yolo_weights: Optional[str] = None,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+    ):
         """
         Initialize detector
 
@@ -307,33 +320,26 @@ class SpaceDebrisDetector:
             conf_thres=0.25,
             iou_thres=0.45,
             img_size=1280,
-            device=device
+            device=device,
         )
 
         self.dino = DINOv2Detector(device=device)
 
         self.tracker = DeepSORTTracker(
-            max_dist=0.2,
-            min_confidence=0.3,
-            max_iou_distance=0.7,
-            max_age=70,
-            n_init=3
+            max_dist=0.2, min_confidence=0.3, max_iou_distance=0.7, max_age=70, n_init=3
         )
 
         self.gaussian_splatter = GaussianSplatting3D(
-            num_points=5000,
-            optimization_iterations=100,
-            learning_rate=0.01
+            num_points=5000, optimization_iterations=100, learning_rate=0.01
         )
 
         self.space_feature_extractor = SpaceFeatureExtractor().to(device)
 
         print(f"SpaceDebrisDetector initialized on {device}")
 
-    def process_telescope_image(self,
-                                image: np.ndarray,
-                                previous_frames: Optional[List[np.ndarray]] = None
-                                ) -> List[Dict]:
+    def process_telescope_image(
+        self, image: np.ndarray, previous_frames: Optional[List[np.ndarray]] = None
+    ) -> List[Dict]:
         """
         Process telescope imagery for debris detection
 
@@ -360,7 +366,9 @@ class SpaceDebrisDetector:
         if previous_frames is not None and len(previous_frames) > 0:
             tracks = self.tracker.update(all_detections, processed)
         else:
-            tracks = [self._detection_to_track(det, i) for i, det in enumerate(all_detections)]
+            tracks = [
+                self._detection_to_track(det, i) for i, det in enumerate(all_detections)
+            ]
 
         # 6. 3D characterization for stable tracks
         characterized_objects = []
@@ -371,8 +379,9 @@ class SpaceDebrisDetector:
 
         return characterized_objects
 
-    def _merge_detections(self, yolo_dets: List[Detection],
-                         dino_dets: List[Detection]) -> List[Detection]:
+    def _merge_detections(
+        self, yolo_dets: List[Detection], dino_dets: List[Detection]
+    ) -> List[Detection]:
         """Merge detections from multiple sources"""
         # Simple merge - in production implement IoU-based NMS
         all_dets = yolo_dets + dino_dets
@@ -387,11 +396,15 @@ class SpaceDebrisDetector:
             hits=1,
             age=1,
             class_name=detection.class_name,
-            intensities=[detection.confidence]
+            intensities=[detection.confidence],
         )
 
-    def _characterize_object(self, track: Track, current_frame: np.ndarray,
-                           previous_frames: Optional[List[np.ndarray]]) -> Dict:
+    def _characterize_object(
+        self,
+        track: Track,
+        current_frame: np.ndarray,
+        previous_frames: Optional[List[np.ndarray]],
+    ) -> Dict:
         """Characterize tracked object in 3D"""
         # Extract object views
         views = self._extract_object_views(track, current_frame, previous_frames)
@@ -408,19 +421,23 @@ class SpaceDebrisDetector:
         reflectivity = self._estimate_reflectivity(track.intensities)
 
         return {
-            'track_id': track.track_id,
-            'bbox': track.bbox,
-            'velocity': track.velocity,
-            'shape': shape_params,
-            'tumble_rate': tumble_rate,
-            'size_estimate': size_estimate,
-            'reflectivity': reflectivity,
-            'class_name': track.class_name,
-            'confidence': np.mean(track.intensities) if track.intensities else 0.0
+            "track_id": track.track_id,
+            "bbox": track.bbox,
+            "velocity": track.velocity,
+            "shape": shape_params,
+            "tumble_rate": tumble_rate,
+            "size_estimate": size_estimate,
+            "reflectivity": reflectivity,
+            "class_name": track.class_name,
+            "confidence": np.mean(track.intensities) if track.intensities else 0.0,
         }
 
-    def _extract_object_views(self, track: Track, current_frame: np.ndarray,
-                             previous_frames: Optional[List[np.ndarray]]) -> List[np.ndarray]:
+    def _extract_object_views(
+        self,
+        track: Track,
+        current_frame: np.ndarray,
+        previous_frames: Optional[List[np.ndarray]],
+    ) -> List[np.ndarray]:
         """Extract different views of object for 3D reconstruction"""
         views = []
 

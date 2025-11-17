@@ -4,13 +4,14 @@ Generates and sends collision alerts to operators
 """
 
 import asyncio
-from typing import Dict, List
 from datetime import datetime
 from enum import Enum
+from typing import Dict, List
 
 
 class AlertLevel(Enum):
     """Alert severity levels"""
+
     INFO = "INFO"
     LOW = "LOW"
     MEDIUM = "MEDIUM"
@@ -23,9 +24,7 @@ class AlertSystem:
     Alert system for collision warnings
     """
 
-    def __init__(self,
-                 satellite_id: int,
-                 operator_preferences: Dict):
+    def __init__(self, satellite_id: int, operator_preferences: Dict):
         """
         Initialize alert system
 
@@ -52,13 +51,13 @@ class AlertSystem:
 
         # Create alert message
         alert = {
-            'alert_id': f"ALERT_{self.satellite_id}_{datetime.utcnow().timestamp()}",
-            'satellite_id': self.satellite_id,
-            'level': level.value,
-            'timestamp': datetime.utcnow().isoformat(),
-            'conjunction': conjunction,
-            'assessment': assessment,
-            'message': self._format_alert_message(conjunction, level)
+            "alert_id": f"ALERT_{self.satellite_id}_{datetime.utcnow().timestamp()}",
+            "satellite_id": self.satellite_id,
+            "level": level.value,
+            "timestamp": datetime.utcnow().isoformat(),
+            "conjunction": conjunction,
+            "assessment": assessment,
+            "message": self._format_alert_message(conjunction, level),
         }
 
         # Log alert
@@ -71,9 +70,9 @@ class AlertSystem:
 
     def _determine_alert_level(self, conjunction: Dict) -> AlertLevel:
         """Determine alert severity level"""
-        prob = conjunction['collision_probability']
-        dist = conjunction['miss_distance']
-        time_to = conjunction['time_to_tca'] / 3600  # hours
+        prob = conjunction["collision_probability"]
+        dist = conjunction["miss_distance"]
+        time_to = conjunction["time_to_tca"] / 3600  # hours
 
         # Critical: Very high probability or very close approach
         if prob > 0.001 or dist < 0.5:
@@ -119,15 +118,15 @@ Action Required: {'IMMEDIATE' if level in [AlertLevel.CRITICAL, AlertLevel.HIGH]
     async def _send_via_channels(self, alert: Dict):
         """Send alert via configured channels"""
         # Email
-        if self.operator_prefs.get('email_alerts', False):
+        if self.operator_prefs.get("email_alerts", False):
             await self._send_email(alert)
 
         # SMS
-        if self.operator_prefs.get('sms_alerts', False):
+        if self.operator_prefs.get("sms_alerts", False):
             await self._send_sms(alert)
 
         # WebSocket
-        if self.operator_prefs.get('websocket_alerts', True):
+        if self.operator_prefs.get("websocket_alerts", True):
             await self._send_websocket(alert)
 
         # Dashboard notification
@@ -176,11 +175,11 @@ Confidence: {maneuver['confidence']:.1%}
         """
 
         alert = {
-            'type': 'MANEUVER_RECOMMENDATION',
-            'satellite_id': self.satellite_id,
-            'timestamp': datetime.utcnow().isoformat(),
-            'maneuver': maneuver,
-            'message': message.strip()
+            "type": "MANEUVER_RECOMMENDATION",
+            "satellite_id": self.satellite_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "maneuver": maneuver,
+            "message": message.strip(),
         }
 
         await self._send_via_channels(alert)
@@ -193,24 +192,24 @@ if __name__ == "__main__":
     system = AlertSystem(
         satellite_id=25544,
         operator_preferences={
-            'email_alerts': True,
-            'sms_alerts': False,
-            'websocket_alerts': True
-        }
+            "email_alerts": True,
+            "sms_alerts": False,
+            "websocket_alerts": True,
+        },
     )
 
     # Test conjunction
     test_conjunction = {
-        'primary': 25544,
-        'secondary': 'DEBRIS_123',
-        'tca': '2025-11-18T12:00:00Z',
-        'time_to_tca': 86400,
-        'miss_distance': 0.8,
-        'collision_probability': 0.0002,
-        'relative_velocity': 12.5,
-        'radial_separation': 0.3,
-        'in_track_separation': 0.5,
-        'cross_track_separation': 0.2
+        "primary": 25544,
+        "secondary": "DEBRIS_123",
+        "tca": "2025-11-18T12:00:00Z",
+        "time_to_tca": 86400,
+        "miss_distance": 0.8,
+        "collision_probability": 0.0002,
+        "relative_velocity": 12.5,
+        "radial_separation": 0.3,
+        "in_track_separation": 0.5,
+        "cross_track_separation": 0.2,
     }
 
     # Send alert

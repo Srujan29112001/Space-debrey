@@ -5,12 +5,13 @@ Real-time processing of space debris data streams
 
 import asyncio
 import logging
-from typing import Dict, List, Optional, Callable, Any
-from datetime import datetime
-from collections import deque
-import numpy as np
-from dataclasses import dataclass, field
 import time
+from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ProcessingMetrics:
     """Metrics for stream processing"""
+
     total_events: int = 0
     processed_events: int = 0
     failed_events: int = 0
@@ -32,10 +34,12 @@ class StreamProcessor:
     Handles validation, enrichment, and routing of data streams
     """
 
-    def __init__(self,
-                 max_queue_size: int = 10000,
-                 batch_size: int = 100,
-                 batch_timeout_ms: int = 1000):
+    def __init__(
+        self,
+        max_queue_size: int = 10000,
+        batch_size: int = 100,
+        batch_timeout_ms: int = 1000,
+    ):
         """
         Initialize stream processor
 
@@ -152,22 +156,24 @@ class StreamProcessor:
         while self._running:
             try:
                 # Collect batch
-                timeout = (self.batch_timeout_ms -
-                          (time.time() - last_batch_time) * 1000) / 1000
+                timeout = (
+                    self.batch_timeout_ms - (time.time() - last_batch_time) * 1000
+                ) / 1000
 
                 if timeout > 0:
                     try:
                         event = await asyncio.wait_for(
-                            self.input_queue.get(),
-                            timeout=timeout
+                            self.input_queue.get(), timeout=timeout
                         )
                         batch.append(event)
                     except asyncio.TimeoutError:
                         pass
 
                 # Process batch when full or timeout
-                if (len(batch) >= self.batch_size or
-                    (time.time() - last_batch_time) * 1000 >= self.batch_timeout_ms):
+                if (
+                    len(batch) >= self.batch_size
+                    or (time.time() - last_batch_time) * 1000 >= self.batch_timeout_ms
+                ):
 
                     if batch:
                         await self._process_batch(batch)
@@ -211,7 +217,7 @@ class StreamProcessor:
                     processed_event = enricher(processed_event)
 
                 # Add processing timestamp
-                processed_event['_processed_at'] = datetime.utcnow().isoformat()
+                processed_event["_processed_at"] = datetime.utcnow().isoformat()
 
                 processed_batch.append(processed_event)
                 self.metrics.processed_events += 1
@@ -225,9 +231,8 @@ class StreamProcessor:
 
         # Update metrics
         processing_time = time.time() - start_time
-        self.metrics.avg_latency_ms = (
-            0.9 * self.metrics.avg_latency_ms +
-            0.1 * (processing_time * 1000 / len(batch))
+        self.metrics.avg_latency_ms = 0.9 * self.metrics.avg_latency_ms + 0.1 * (
+            processing_time * 1000 / len(batch)
         )
         self.metrics.throughput_eps = len(batch) / processing_time
         self.metrics.last_update = datetime.utcnow()
@@ -247,7 +252,7 @@ class StreamProcessor:
         """Route processed events to output queues"""
         for event in events:
             # Determine routing based on event type
-            event_type = event.get('type', 'default')
+            event_type = event.get("type", "default")
 
             # Send to all matching output queues
             for output_name, output_queue in self.output_queues.items():
@@ -265,14 +270,14 @@ class StreamProcessor:
     def _should_route(self, event: Dict, output_name: str) -> bool:
         """Determine if event should be routed to output"""
         # Default routing logic
-        event_type = event.get('type', '')
+        event_type = event.get("type", "")
 
         routing_rules = {
-            'detection': lambda e: 'detection' in e.get('type', ''),
-            'tracking': lambda e: 'track' in e.get('type', ''),
-            'collision': lambda e: e.get('collision_risk', 0) > 0.0001,
-            'high_risk': lambda e: e.get('risk_level', '') == 'HIGH',
-            'alerts': lambda e: e.get('alert', False),
+            "detection": lambda e: "detection" in e.get("type", ""),
+            "tracking": lambda e: "track" in e.get("type", ""),
+            "collision": lambda e: e.get("collision_risk", 0) > 0.0001,
+            "high_risk": lambda e: e.get("risk_level", "") == "HIGH",
+            "alerts": lambda e: e.get("alert", False),
         }
 
         if output_name in routing_rules:
@@ -285,8 +290,9 @@ class StreamProcessor:
         # Default: add all events
         return True
 
-    async def get_from_output(self, output_name: str,
-                             timeout: Optional[float] = None) -> Optional[Dict]:
+    async def get_from_output(
+        self, output_name: str, timeout: Optional[float] = None
+    ) -> Optional[Dict]:
         """
         Get event from output queue
 
@@ -303,8 +309,7 @@ class StreamProcessor:
         try:
             if timeout is not None:
                 event = await asyncio.wait_for(
-                    self.output_queues[output_name].get(),
-                    timeout=timeout
+                    self.output_queues[output_name].get(), timeout=timeout
                 )
             else:
                 event = await self.output_queues[output_name].get()
@@ -329,9 +334,9 @@ class StreamProcessor:
 
         return list(self.windows[window_name])
 
-    def compute_window_aggregation(self, window_name: str,
-                                   field: str,
-                                   aggregation: str = 'mean') -> float:
+    def compute_window_aggregation(
+        self, window_name: str, field: str, aggregation: str = "mean"
+    ) -> float:
         """
         Compute aggregation over window
 
@@ -353,15 +358,15 @@ class StreamProcessor:
         if not values:
             return 0.0
 
-        if aggregation == 'mean':
+        if aggregation == "mean":
             return np.mean(values)
-        elif aggregation == 'sum':
+        elif aggregation == "sum":
             return np.sum(values)
-        elif aggregation == 'max':
+        elif aggregation == "max":
             return np.max(values)
-        elif aggregation == 'min':
+        elif aggregation == "min":
             return np.min(values)
-        elif aggregation == 'count':
+        elif aggregation == "count":
             return len(values)
         else:
             raise ValueError(f"Unknown aggregation: {aggregation}")
@@ -369,19 +374,19 @@ class StreamProcessor:
     def get_metrics(self) -> Dict:
         """Get processing metrics"""
         return {
-            'total_events': self.metrics.total_events,
-            'processed_events': self.metrics.processed_events,
-            'failed_events': self.metrics.failed_events,
-            'success_rate': (self.metrics.processed_events /
-                           max(self.metrics.total_events, 1)),
-            'avg_latency_ms': self.metrics.avg_latency_ms,
-            'throughput_eps': self.metrics.throughput_eps,
-            'last_update': self.metrics.last_update.isoformat(),
-            'queue_size': self.input_queue.qsize() if self.input_queue else 0,
-            'output_queue_sizes': {
-                name: queue.qsize()
-                for name, queue in self.output_queues.items()
-            }
+            "total_events": self.metrics.total_events,
+            "processed_events": self.metrics.processed_events,
+            "failed_events": self.metrics.failed_events,
+            "success_rate": (
+                self.metrics.processed_events / max(self.metrics.total_events, 1)
+            ),
+            "avg_latency_ms": self.metrics.avg_latency_ms,
+            "throughput_eps": self.metrics.throughput_eps,
+            "last_update": self.metrics.last_update.isoformat(),
+            "queue_size": self.input_queue.qsize() if self.input_queue else 0,
+            "output_queue_sizes": {
+                name: queue.qsize() for name, queue in self.output_queues.items()
+            },
         }
 
 
@@ -389,10 +394,10 @@ class StreamProcessor:
 def deduplicate_processor(event: Dict) -> Optional[Dict]:
     """Remove duplicate events based on ID"""
     # Simple deduplication - in production, use Redis or similar
-    if '_seen_ids' not in deduplicate_processor.__dict__:
+    if "_seen_ids" not in deduplicate_processor.__dict__:
         deduplicate_processor._seen_ids = set()
 
-    event_id = event.get('id')
+    event_id = event.get("id")
     if event_id in deduplicate_processor._seen_ids:
         return None
 
@@ -402,13 +407,13 @@ def deduplicate_processor(event: Dict) -> Optional[Dict]:
 
 def timestamp_enricher(event: Dict) -> Dict:
     """Add processing timestamp"""
-    event['_ingested_at'] = datetime.utcnow().isoformat()
+    event["_ingested_at"] = datetime.utcnow().isoformat()
     return event
 
 
 def collision_risk_filter(event: Dict) -> bool:
     """Filter for high collision risk events"""
-    return event.get('collision_probability', 0) > 1e-5
+    return event.get("collision_probability", 0) > 1e-5
 
 
 # Example usage
@@ -417,22 +422,20 @@ async def main():
 
     # Create processor
     processor = StreamProcessor(
-        max_queue_size=10000,
-        batch_size=50,
-        batch_timeout_ms=100
+        max_queue_size=10000, batch_size=50, batch_timeout_ms=100
     )
 
     # Register components
     processor.register_processor(deduplicate_processor)
     processor.register_enricher(timestamp_enricher)
-    processor.register_filter(lambda e: e.get('valid', True))
+    processor.register_filter(lambda e: e.get("valid", True))
 
     # Register outputs
-    processor.register_output('detection')
-    processor.register_output('high_risk')
+    processor.register_output("detection")
+    processor.register_output("high_risk")
 
     # Register window for statistics
-    processor.register_window('recent_detections', size=1000)
+    processor.register_window("recent_detections", size=1000)
 
     # Start processor
     await processor.start()
@@ -443,11 +446,11 @@ async def main():
     # Simulate events
     for i in range(100):
         event = {
-            'id': f'event_{i}',
-            'type': 'detection',
-            'timestamp': datetime.utcnow().isoformat(),
-            'collision_probability': np.random.rand() * 0.001,
-            'valid': np.random.rand() > 0.1
+            "id": f"event_{i}",
+            "type": "detection",
+            "timestamp": datetime.utcnow().isoformat(),
+            "collision_probability": np.random.rand() * 0.001,
+            "valid": np.random.rand() > 0.1,
         }
         await processor.submit(event)
 

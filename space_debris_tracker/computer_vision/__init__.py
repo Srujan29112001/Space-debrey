@@ -10,8 +10,8 @@ Modules:
 """
 
 from .detector import SpaceDebrisDetector
-from .tracking.deepsort import DeepSORTTracker
 from .preprocessing.space_image import SpaceImagePreprocessor
+from .tracking.deepsort import DeepSORTTracker
 
 __all__ = [
     "SpaceDebrisDetector",

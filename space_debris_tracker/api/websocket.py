@@ -3,9 +3,10 @@ WebSocket Connection Manager
 Manages real-time connections for satellite tracking
 """
 
-from fastapi import WebSocket
-from typing import List, Dict
 import json
+from typing import Dict, List
+
+from fastapi import WebSocket
 
 
 class ConnectionManager:

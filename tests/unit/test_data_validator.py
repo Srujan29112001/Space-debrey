@@ -3,9 +3,10 @@ Unit Tests for Data Validator
 Tests data validation and sanitization logic
 """
 
-import pytest
-import numpy as np
 from datetime import datetime, timedelta
+
+import numpy as np
+import pytest
 
 from space_debris_tracker.data_ingestion.data_validator import DataValidator
 
@@ -82,11 +83,11 @@ class TestDataValidator:
         validator = DataValidator()
 
         elements = {
-            'norad_id': 25544,
-            'eccentricity': 0.001,
-            'inclination': 51.6,
-            'mean_motion': 15.5,
-            'semi_major_axis': 6778.0
+            "norad_id": 25544,
+            "eccentricity": 0.001,
+            "inclination": 51.6,
+            "mean_motion": 15.5,
+            "semi_major_axis": 6778.0,
         }
 
         result = validator.validate_orbital_elements(elements)
@@ -98,10 +99,10 @@ class TestDataValidator:
 
         # Eccentricity > 1 (hyperbolic)
         elements = {
-            'norad_id': 25544,
-            'eccentricity': 1.5,
-            'inclination': 51.6,
-            'mean_motion': 15.5
+            "norad_id": 25544,
+            "eccentricity": 1.5,
+            "inclination": 51.6,
+            "mean_motion": 15.5,
         }
 
         result = validator.validate_orbital_elements(elements)
@@ -113,10 +114,10 @@ class TestDataValidator:
 
         # Inclination > 180
         elements = {
-            'norad_id': 25544,
-            'eccentricity': 0.001,
-            'inclination': 200.0,
-            'mean_motion': 15.5
+            "norad_id": 25544,
+            "eccentricity": 0.001,
+            "inclination": 200.0,
+            "mean_motion": 15.5,
         }
 
         result = validator.validate_orbital_elements(elements)
@@ -130,8 +131,8 @@ class TestDataValidator:
         dirty = "<script>alert('xss')</script>Test"
         clean = validator.sanitize_string(dirty)
 
-        assert '<script>' not in clean
-        assert 'Test' in clean
+        assert "<script>" not in clean
+        assert "Test" in clean
 
     def test_sanitize_numeric_input(self):
         """Test numeric sanitization"""
@@ -165,7 +166,7 @@ class TestDataValidator:
         assert result is False
 
         # Old timestamp (invalid)
-        old = now - timedelta(days=365*10)
+        old = now - timedelta(days=365 * 10)
         result = validator.validate_timestamp(old)
         assert result is False
 
@@ -202,13 +203,16 @@ class TestDataValidator:
         assert validator.validate_confidence(1.5) is False
         assert validator.validate_confidence(np.nan) is False
 
-    @pytest.mark.parametrize("norad_id,expected", [
-        (25544, True),   # Valid
-        (99999, True),   # Valid
-        (0, False),      # Invalid
-        (-1, False),     # Invalid
-        (100000, False)  # Invalid (too large)
-    ])
+    @pytest.mark.parametrize(
+        "norad_id,expected",
+        [
+            (25544, True),  # Valid
+            (99999, True),  # Valid
+            (0, False),  # Invalid
+            (-1, False),  # Invalid
+            (100000, False),  # Invalid (too large)
+        ],
+    )
     def test_validate_norad_id(self, norad_id, expected):
         """Test NORAD ID validation"""
         validator = DataValidator()
@@ -236,9 +240,12 @@ class TestDataValidator:
         validator = DataValidator()
 
         items = [
-            {'norad_id': 25544, 'state': np.array([6778.0, 0, 0, 0, 7.66, 0])},
-            {'norad_id': 25338, 'state': np.array([7178.0, 0, 0, 0, 7.5, 0])},
-            {'norad_id': 0, 'state': np.array([6778.0, 0, 0, 0, 7.66, 0])},  # Invalid NORAD
+            {"norad_id": 25544, "state": np.array([6778.0, 0, 0, 0, 7.66, 0])},
+            {"norad_id": 25338, "state": np.array([7178.0, 0, 0, 0, 7.5, 0])},
+            {
+                "norad_id": 0,
+                "state": np.array([6778.0, 0, 0, 0, 7.66, 0]),
+            },  # Invalid NORAD
         ]
 
         valid_items = validator.batch_validate(items)

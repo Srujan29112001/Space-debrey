@@ -3,16 +3,17 @@ Test Utilities
 Mock data generators, helpers, and test utilities
 """
 
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+import cv2
 import numpy as np
 import torch
-from datetime import datetime, timedelta
-from typing import List, Dict, Tuple, Optional
-import cv2
-
 
 # ============================================================================
 # TLE GENERATORS
 # ============================================================================
+
 
 def generate_tle(norad_id: int = 25544, name: str = "TEST SAT") -> Tuple[str, str, str]:
     """
@@ -30,33 +31,37 @@ def generate_tle(norad_id: int = 25544, name: str = "TEST SAT") -> Tuple[str, st
     epoch_day = 1.0
 
     # Line 1
-    classification = 'U'
-    intl_designator = '98067A  '
-    mean_motion_dot = ' .00016717'
-    mean_motion_ddot = ' 00000-0'
-    bstar = ' 10270-3'
-    ephemeris_type = '0'
-    element_set = '900'
+    classification = "U"
+    intl_designator = "98067A  "
+    mean_motion_dot = " .00016717"
+    mean_motion_ddot = " 00000-0"
+    bstar = " 10270-3"
+    ephemeris_type = "0"
+    element_set = "900"
 
-    line1_data = (f"1 {norad_id:5d}{classification} {intl_designator} "
-                  f"{epoch_year:02d}{epoch_day:012.8f}{mean_motion_dot} "
-                  f"{mean_motion_ddot} {bstar} {ephemeris_type} {element_set:>4s}")
+    line1_data = (
+        f"1 {norad_id:5d}{classification} {intl_designator} "
+        f"{epoch_year:02d}{epoch_day:012.8f}{mean_motion_dot} "
+        f"{mean_motion_ddot} {bstar} {ephemeris_type} {element_set:>4s}"
+    )
 
     # Calculate checksum for line 1
     checksum1 = calculate_tle_checksum(line1_data)
     line1 = f"{line1_data}{checksum1}"
 
     # Line 2
-    inclination = '51.6416'
-    raan = '247.4627'
-    eccentricity = '0006703'
-    arg_perigee = '130.5360'
-    mean_anomaly = '325.0288'
-    mean_motion = '15.72834465'
-    rev_number = '00000'
+    inclination = "51.6416"
+    raan = "247.4627"
+    eccentricity = "0006703"
+    arg_perigee = "130.5360"
+    mean_anomaly = "325.0288"
+    mean_motion = "15.72834465"
+    rev_number = "00000"
 
-    line2_data = (f"2 {norad_id:5d} {inclination:>8s} {raan:>8s} {eccentricity} "
-                  f"{arg_perigee:>8s} {mean_anomaly:>8s} {mean_motion:>11s}{rev_number:>5s}")
+    line2_data = (
+        f"2 {norad_id:5d} {inclination:>8s} {raan:>8s} {eccentricity} "
+        f"{arg_perigee:>8s} {mean_anomaly:>8s} {mean_motion:>11s}{rev_number:>5s}"
+    )
 
     checksum2 = calculate_tle_checksum(line2_data)
     line2 = f"{line2_data}{checksum2}"
@@ -70,7 +75,7 @@ def calculate_tle_checksum(line: str) -> int:
     for char in line:
         if char.isdigit():
             total += int(char)
-        elif char == '-':
+        elif char == "-":
             total += 1
     return total % 10
 
@@ -89,12 +94,13 @@ def generate_tle_batch(count: int = 10) -> List[Tuple[str, str, str]]:
 # IMAGE GENERATORS
 # ============================================================================
 
+
 def generate_space_image(
     width: int = 1024,
     height: int = 1024,
     n_stars: int = 100,
     n_debris: int = 5,
-    add_noise: bool = True
+    add_noise: bool = True,
 ) -> np.ndarray:
     """
     Generate synthetic space telescope image
@@ -137,7 +143,7 @@ def generate_space_image(
             # Blob
             radius = np.random.randint(2, 5)
             cv2.circle(image, (x, y), radius, (brightness, brightness, brightness), -1)
-            debris_positions.append((x-radius, y-radius, x+radius, y+radius))
+            debris_positions.append((x - radius, y - radius, x + radius, y + radius))
         else:
             # Streak
             length = np.random.randint(5, 20)
@@ -151,10 +157,7 @@ def generate_space_image(
 
 
 def generate_image_sequence(
-    n_frames: int = 10,
-    width: int = 1024,
-    height: int = 1024,
-    moving_objects: int = 3
+    n_frames: int = 10, width: int = 1024, height: int = 1024, moving_objects: int = 3
 ) -> List[np.ndarray]:
     """
     Generate sequence of images with moving debris
@@ -178,7 +181,7 @@ def generate_image_sequence(
         vx = np.random.randint(-5, 5)
         vy = np.random.randint(-5, 5)
         brightness = np.random.randint(150, 255)
-        objects.append({'x': x, 'y': y, 'vx': vx, 'vy': vy, 'brightness': brightness})
+        objects.append({"x": x, "y": y, "vx": vx, "vy": vy, "brightness": brightness})
 
     # Generate frames
     for _ in range(n_frames):
@@ -187,18 +190,23 @@ def generate_image_sequence(
 
         # Add moving objects
         for obj in objects:
-            cv2.circle(image, (int(obj['x']), int(obj['y'])), 3,
-                      (obj['brightness'], obj['brightness'], obj['brightness']), -1)
+            cv2.circle(
+                image,
+                (int(obj["x"]), int(obj["y"])),
+                3,
+                (obj["brightness"], obj["brightness"], obj["brightness"]),
+                -1,
+            )
 
             # Update position
-            obj['x'] += obj['vx']
-            obj['y'] += obj['vy']
+            obj["x"] += obj["vx"]
+            obj["y"] += obj["vy"]
 
             # Bounce off edges
-            if obj['x'] < 0 or obj['x'] >= width:
-                obj['vx'] *= -1
-            if obj['y'] < 0 or obj['y'] >= height:
-                obj['vy'] *= -1
+            if obj["x"] < 0 or obj["x"] >= width:
+                obj["vx"] *= -1
+            if obj["y"] < 0 or obj["y"] >= height:
+                obj["vy"] *= -1
 
         frames.append(image)
 
@@ -209,10 +217,9 @@ def generate_image_sequence(
 # STATE VECTOR GENERATORS
 # ============================================================================
 
+
 def generate_orbital_state(
-    altitude: float = 400.0,
-    inclination: float = 51.6,
-    eccentricity: float = 0.0
+    altitude: float = 400.0, inclination: float = 51.6, eccentricity: float = 0.0
 ) -> np.ndarray:
     """
     Generate orbital state vector
@@ -248,11 +255,7 @@ def generate_orbital_state(
     return np.array([x, y, z, vx, vy, vz])
 
 
-def propagate_orbit_simple(
-    state: np.ndarray,
-    dt: float,
-    n_steps: int
-) -> np.ndarray:
+def propagate_orbit_simple(state: np.ndarray, dt: float, n_steps: int) -> np.ndarray:
     """
     Simple orbit propagation (two-body problem)
 
@@ -270,8 +273,8 @@ def propagate_orbit_simple(
 
     for i in range(1, n_steps):
         # Current state
-        r = trajectory[i-1, :3]
-        v = trajectory[i-1, 3:6]
+        r = trajectory[i - 1, :3]
+        v = trajectory[i - 1, 3:6]
 
         # Acceleration (two-body)
         r_mag = np.linalg.norm(r)
@@ -290,10 +293,9 @@ def propagate_orbit_simple(
 # DETECTION GENERATORS
 # ============================================================================
 
+
 def generate_detections(
-    n_detections: int = 10,
-    img_width: int = 1024,
-    img_height: int = 1024
+    n_detections: int = 10, img_width: int = 1024, img_height: int = 1024
 ) -> List[Dict]:
     """
     Generate random detections
@@ -318,11 +320,11 @@ def generate_detections(
         y2 = min(y1 + h, img_height)
 
         detection = {
-            'bbox': (x1, y1, x2, y2),
-            'confidence': np.random.uniform(0.5, 1.0),
-            'class_id': np.random.randint(0, 3),
-            'class_name': np.random.choice(['debris', 'satellite', 'unknown']),
-            'features': np.random.randn(128).astype(np.float32)
+            "bbox": (x1, y1, x2, y2),
+            "confidence": np.random.uniform(0.5, 1.0),
+            "class_id": np.random.randint(0, 3),
+            "class_name": np.random.choice(["debris", "satellite", "unknown"]),
+            "features": np.random.randn(128).astype(np.float32),
         }
 
         detections.append(detection)
@@ -334,7 +336,8 @@ def generate_detections(
 # KAFKA MESSAGE GENERATORS
 # ============================================================================
 
-def generate_kafka_message(message_type: str = 'tle') -> Dict:
+
+def generate_kafka_message(message_type: str = "tle") -> Dict:
     """
     Generate Kafka message
 
@@ -344,41 +347,37 @@ def generate_kafka_message(message_type: str = 'tle') -> Dict:
     Returns:
         Message dictionary
     """
-    if message_type == 'tle':
+    if message_type == "tle":
         name, line1, line2 = generate_tle()
         return {
-            'type': 'tle',
-            'timestamp': datetime.utcnow().isoformat(),
-            'data': {
-                'name': name,
-                'line1': line1,
-                'line2': line2
-            }
+            "type": "tle",
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": {"name": name, "line1": line1, "line2": line2},
         }
 
-    elif message_type == 'detection':
+    elif message_type == "detection":
         return {
-            'type': 'detection',
-            'timestamp': datetime.utcnow().isoformat(),
-            'data': {
-                'object_id': f'DEBRIS_{np.random.randint(10000, 99999)}',
-                'position': np.random.randn(3).tolist(),
-                'velocity': np.random.randn(3).tolist(),
-                'confidence': np.random.uniform(0.5, 1.0)
-            }
+            "type": "detection",
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": {
+                "object_id": f"DEBRIS_{np.random.randint(10000, 99999)}",
+                "position": np.random.randn(3).tolist(),
+                "velocity": np.random.randn(3).tolist(),
+                "confidence": np.random.uniform(0.5, 1.0),
+            },
         }
 
-    elif message_type == 'alert':
+    elif message_type == "alert":
         return {
-            'type': 'alert',
-            'timestamp': datetime.utcnow().isoformat(),
-            'severity': np.random.choice(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-            'data': {
-                'primary_object': 25544,
-                'secondary_object': f'DEBRIS_{np.random.randint(10000, 99999)}',
-                'collision_probability': np.random.uniform(0.0001, 0.01),
-                'tca': (datetime.utcnow() + timedelta(hours=24)).isoformat()
-            }
+            "type": "alert",
+            "timestamp": datetime.utcnow().isoformat(),
+            "severity": np.random.choice(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+            "data": {
+                "primary_object": 25544,
+                "secondary_object": f"DEBRIS_{np.random.randint(10000, 99999)}",
+                "collision_probability": np.random.uniform(0.0001, 0.01),
+                "tca": (datetime.utcnow() + timedelta(hours=24)).isoformat(),
+            },
         }
 
     return {}
@@ -387,6 +386,7 @@ def generate_kafka_message(message_type: str = 'tle') -> Dict:
 # ============================================================================
 # ASSERTION HELPERS
 # ============================================================================
+
 
 def assert_valid_state_vector(state: np.ndarray, tolerance: float = 1e-6):
     """Assert state vector is valid"""
@@ -415,27 +415,24 @@ def assert_valid_trajectory(trajectory: np.ndarray):
 
 def assert_valid_detection(detection: Dict):
     """Assert detection is valid"""
-    assert 'bbox' in detection, "Detection missing bbox"
-    assert 'confidence' in detection, "Detection missing confidence"
-    assert 'class_id' in detection, "Detection missing class_id"
+    assert "bbox" in detection, "Detection missing bbox"
+    assert "confidence" in detection, "Detection missing confidence"
+    assert "class_id" in detection, "Detection missing class_id"
 
     # Check bbox format
-    bbox = detection['bbox']
+    bbox = detection["bbox"]
     assert len(bbox) == 4, f"Invalid bbox length: {len(bbox)}"
     x1, y1, x2, y2 = bbox
     assert x2 > x1, "Invalid bbox: x2 <= x1"
     assert y2 > y1, "Invalid bbox: y2 <= y1"
 
     # Check confidence
-    conf = detection['confidence']
+    conf = detection["confidence"]
     assert 0.0 <= conf <= 1.0, f"Invalid confidence: {conf}"
 
 
 def assert_arrays_close(
-    arr1: np.ndarray,
-    arr2: np.ndarray,
-    rtol: float = 1e-5,
-    atol: float = 1e-8
+    arr1: np.ndarray, arr2: np.ndarray, rtol: float = 1e-5, atol: float = 1e-8
 ):
     """Assert two arrays are close"""
     assert arr1.shape == arr2.shape, f"Shape mismatch: {arr1.shape} vs {arr2.shape}"
@@ -445,6 +442,7 @@ def assert_arrays_close(
 # ============================================================================
 # TIMING UTILITIES
 # ============================================================================
+
 
 class Timer:
     """Simple timer context manager"""

@@ -3,16 +3,17 @@ TLE (Two-Line Element) Parser
 Parses orbital element data from NORAD and Space-Track.org
 """
 
-import re
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
-import numpy as np
-from sgp4.api import Satrec, jday
-from sgp4 import exporter
-import requests
-from pathlib import Path
 import logging
+import re
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
+import requests
+from sgp4 import exporter
+from sgp4.api import Satrec, jday
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OrbitalElements:
     """Keplerian orbital elements"""
+
     norad_id: int
     name: str
     epoch: datetime
@@ -49,7 +51,7 @@ class OrbitalElements:
 
         # Semi-major axis from mean motion
         # n^2 * a^3 = mu
-        self.semi_major_axis = (mu / (n * 60)**2) ** (1/3)  # convert to rad/sec
+        self.semi_major_axis = (mu / (n * 60) ** 2) ** (1 / 3)  # convert to rad/sec
 
         # Period in minutes
         self.period = 1440.0 / self.mean_motion
@@ -62,31 +64,34 @@ class OrbitalElements:
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
         return {
-            'norad_id': self.norad_id,
-            'name': self.name,
-            'epoch': self.epoch.isoformat(),
-            'mean_motion': self.mean_motion,
-            'eccentricity': self.eccentricity,
-            'inclination': self.inclination,
-            'raan': self.raan,
-            'arg_perigee': self.arg_perigee,
-            'mean_anomaly': self.mean_anomaly,
-            'bstar': self.bstar,
-            'classification': self.classification,
-            'element_set_number': self.element_set_number,
-            'revolution_number': self.revolution_number,
-            'semi_major_axis': self.semi_major_axis,
-            'period': self.period,
-            'apogee': self.apogee,
-            'perigee': self.perigee,
+            "norad_id": self.norad_id,
+            "name": self.name,
+            "epoch": self.epoch.isoformat(),
+            "mean_motion": self.mean_motion,
+            "eccentricity": self.eccentricity,
+            "inclination": self.inclination,
+            "raan": self.raan,
+            "arg_perigee": self.arg_perigee,
+            "mean_anomaly": self.mean_anomaly,
+            "bstar": self.bstar,
+            "classification": self.classification,
+            "element_set_number": self.element_set_number,
+            "revolution_number": self.revolution_number,
+            "semi_major_axis": self.semi_major_axis,
+            "period": self.period,
+            "apogee": self.apogee,
+            "perigee": self.perigee,
         }
 
 
 class TLEParser:
     """Parse and process Two-Line Element sets"""
 
-    def __init__(self, space_track_username: Optional[str] = None,
-                 space_track_password: Optional[str] = None):
+    def __init__(
+        self,
+        space_track_username: Optional[str] = None,
+        space_track_password: Optional[str] = None,
+    ):
         """
         Initialize TLE Parser
 
@@ -130,13 +135,12 @@ class TLEParser:
             epoch_year += 1900
 
         # Convert epoch day to datetime
-        epoch = datetime(epoch_year, 1, 1) + \
-                datetime.timedelta(days=epoch_day - 1)
+        epoch = datetime(epoch_year, 1, 1) + datetime.timedelta(days=epoch_day - 1)
 
         # Parse line 2
         inclination = float(line2[8:16])
         raan = float(line2[17:25])
-        eccentricity = float('0.' + line2[26:33])
+        eccentricity = float("0." + line2[26:33])
         arg_perigee = float(line2[34:42])
         mean_anomaly = float(line2[43:51])
         mean_motion = float(line2[52:63])
@@ -156,7 +160,7 @@ class TLEParser:
             bstar=bstar,
             classification=classification,
             element_set_number=element_set_num,
-            revolution_number=revolution_number
+            revolution_number=revolution_number,
         )
 
         # Calculate derived elements
@@ -176,7 +180,7 @@ class TLEParser:
         """
         elements_list = []
 
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             lines = f.readlines()
 
         # Process in groups of 3 (name, line1, line2)
@@ -198,8 +202,9 @@ class TLEParser:
         logger.info(f"Parsed {len(elements_list)} TLE sets from {filepath}")
         return elements_list
 
-    def propagate_sgp4(self, elements: OrbitalElements,
-                       target_time: datetime) -> Tuple[np.ndarray, np.ndarray]:
+    def propagate_sgp4(
+        self, elements: OrbitalElements, target_time: datetime
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Propagate orbit using SGP4
 
@@ -215,7 +220,7 @@ class TLEParser:
         sat = Satrec()
         sat.sgp4init(
             whichconst=exporter.WGS72,  # gravity model
-            opsmode='i',  # improved mode
+            opsmode="i",  # improved mode
             satnum=str(elements.norad_id),
             epoch=(elements.epoch - datetime(1949, 12, 31)).total_seconds() / 86400.0,
             bstar=elements.bstar,
@@ -230,8 +235,14 @@ class TLEParser:
         )
 
         # Propagate to target time
-        jd, fr = jday(target_time.year, target_time.month, target_time.day,
-                      target_time.hour, target_time.minute, target_time.second)
+        jd, fr = jday(
+            target_time.year,
+            target_time.month,
+            target_time.day,
+            target_time.hour,
+            target_time.minute,
+            target_time.second,
+        )
 
         error_code, position, velocity = sat.sgp4(jd, fr)
 
@@ -257,8 +268,8 @@ class TLEParser:
         # Login
         login_url = f"{self.base_url}/ajaxauth/login"
         login_data = {
-            'identity': self.space_track_username,
-            'password': self.space_track_password
+            "identity": self.space_track_username,
+            "password": self.space_track_password,
         }
 
         try:
@@ -266,14 +277,16 @@ class TLEParser:
             response.raise_for_status()
 
             # Query TLE
-            query_url = (f"{self.base_url}/basicspacedata/query/class/tle_latest/"
-                        f"NORAD_CAT_ID/{norad_id}/orderby/EPOCH%20desc/limit/1/format/3le")
+            query_url = (
+                f"{self.base_url}/basicspacedata/query/class/tle_latest/"
+                f"NORAD_CAT_ID/{norad_id}/orderby/EPOCH%20desc/limit/1/format/3le"
+            )
 
             response = self.session.get(query_url)
             response.raise_for_status()
 
             # Parse response
-            lines = response.text.strip().split('\n')
+            lines = response.text.strip().split("\n")
             if len(lines) >= 3:
                 return self.parse_tle(lines[1], lines[2], lines[0])
             else:
@@ -284,8 +297,9 @@ class TLEParser:
             logger.error(f"Failed to fetch TLE: {e}")
             return None
 
-    def fetch_catalog(self, classification: str = 'U',
-                     output_file: Optional[str] = None) -> List[OrbitalElements]:
+    def fetch_catalog(
+        self, classification: str = "U", output_file: Optional[str] = None
+    ) -> List[OrbitalElements]:
         """
         Fetch entire satellite catalog
 
@@ -303,8 +317,8 @@ class TLEParser:
         # Login
         login_url = f"{self.base_url}/ajaxauth/login"
         login_data = {
-            'identity': self.space_track_username,
-            'password': self.space_track_password
+            "identity": self.space_track_username,
+            "password": self.space_track_password,
         }
 
         try:
@@ -312,9 +326,11 @@ class TLEParser:
             response.raise_for_status()
 
             # Query catalog
-            query_url = (f"{self.base_url}/basicspacedata/query/class/tle_latest/"
-                        f"ORDINAL/1/CLASSIFICATION/{classification}/"
-                        f"orderby/NORAD_CAT_ID/format/3le")
+            query_url = (
+                f"{self.base_url}/basicspacedata/query/class/tle_latest/"
+                f"ORDINAL/1/CLASSIFICATION/{classification}/"
+                f"orderby/NORAD_CAT_ID/format/3le"
+            )
 
             response = self.session.get(query_url)
             response.raise_for_status()
@@ -322,12 +338,12 @@ class TLEParser:
             # Save to file if requested
             if output_file:
                 Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-                with open(output_file, 'w') as f:
+                with open(output_file, "w") as f:
                     f.write(response.text)
                 logger.info(f"Saved catalog to {output_file}")
 
             # Parse TLEs
-            lines = response.text.strip().split('\n')
+            lines = response.text.strip().split("\n")
             elements_list = []
 
             for i in range(0, len(lines), 3):
@@ -335,7 +351,7 @@ class TLEParser:
                     break
 
                 try:
-                    elements = self.parse_tle(lines[i+1], lines[i+2], lines[i])
+                    elements = self.parse_tle(lines[i + 1], lines[i + 2], lines[i])
                     elements_list.append(elements)
                 except ValueError:
                     continue
@@ -353,7 +369,7 @@ class TLEParser:
         if len(line1) != 69 or len(line2) != 69:
             return False
 
-        if line1[0] != '1' or line2[0] != '2':
+        if line1[0] != "1" or line2[0] != "2":
             return False
 
         # Validate checksums
@@ -362,7 +378,7 @@ class TLEParser:
             for char in line[:-1]:
                 if char.isdigit():
                     total += int(char)
-                elif char == '-':
+                elif char == "-":
                     total += 1
             return total % 10
 
