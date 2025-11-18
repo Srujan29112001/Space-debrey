@@ -8,7 +8,6 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import click
 import yaml
@@ -360,13 +359,6 @@ def trajectory(tle_file, horizon, model, output, format):
                 current_time = datetime.utcnow()
                 pos, vel = parser.propagate_sgp4(elements, current_time)
 
-                initial_state = {
-                    "position": pos,
-                    "velocity": vel,
-                    "norad_id": elements.norad_id,
-                    "name": elements.name,
-                }
-
                 # Predict
                 prediction = predictor.predict_trajectory(
                     initial_state=torch.tensor([*pos, *vel], dtype=torch.float32),
@@ -581,9 +573,9 @@ def status():
     try:
         from space_debris_tracker.knowledge_graph import SpaceKnowledgeGraph
 
-        kg = SpaceKnowledgeGraph()
+        SpaceKnowledgeGraph()
         click.echo("  Neo4j: ✓ Connected")
-    except:
+    except Exception:
         click.echo("  Neo4j: ✗ Not connected")
 
     # Check Kafka
@@ -593,7 +585,7 @@ def status():
         consumer = KafkaConsumer(bootstrap_servers=["localhost:9092"])
         click.echo("  Kafka: ✓ Connected")
         consumer.close()
-    except:
+    except Exception:
         click.echo("  Kafka: ✗ Not connected")
 
 

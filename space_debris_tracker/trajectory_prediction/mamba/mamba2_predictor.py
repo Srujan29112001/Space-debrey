@@ -3,9 +3,6 @@ Mamba2 Predictor for Long-term Orbit Evolution
 State Space Model for efficient long-sequence modeling
 """
 
-import math
-from typing import Optional
-
 import torch
 import torch.nn as nn
 
@@ -92,9 +89,6 @@ class S6Block(nn.Module):
         outputs = []
 
         for t in range(seq_len):
-            # Discretization parameters
-            dt = torch.sigmoid(self.dt_proj(x[:, t]))  # [batch, d_model]
-
             # State projection
             x_t = self.x_proj(x[:, t])  # [batch, d_state]
 
@@ -183,7 +177,7 @@ if __name__ == "__main__":
     # Test Mamba2
     model = Mamba2Predictor(d_model=512, d_state=128, d_conv=4, n_layers=12, seq_len=10000)
 
-    print(f"Mamba2 Predictor:")
+    print("Mamba2 Predictor:")
     print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
 
     # Test with long sequence

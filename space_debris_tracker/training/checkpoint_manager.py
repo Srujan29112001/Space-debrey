@@ -347,7 +347,7 @@ class CheckpointManager:
             dynamic_axes=dynamic_axes,
         )
 
-        print(f"  ONNX export successful")
+        print("  ONNX export successful")
         print(f"  Opset version: {opset_version}")
 
         # Verify export
@@ -356,9 +356,9 @@ class CheckpointManager:
 
             onnx_model = onnx.load(str(export_path))
             onnx.checker.check_model(onnx_model)
-            print(f"  ONNX model verified")
+            print("  ONNX model verified")
         except ImportError:
-            print(f"  Warning: onnx not installed, skipping verification")
+            print("  Warning: onnx not installed, skipping verification")
         except Exception as e:
             print(f"  Warning: ONNX verification failed: {e}")
 
@@ -399,14 +399,14 @@ class CheckpointManager:
 
         torch.jit.save(traced_model, export_path)
 
-        print(f"  TorchScript export successful")
+        print("  TorchScript export successful")
 
         # Test exported model
         try:
             loaded_model = torch.jit.load(str(export_path))
             with torch.no_grad():
-                output = loaded_model(example_input)
-            print(f"  TorchScript model verified")
+                loaded_model(example_input)
+            print("  TorchScript model verified")
         except Exception as e:
             print(f"  Warning: TorchScript verification failed: {e}")
 
@@ -434,7 +434,7 @@ class CheckpointManager:
             self.metadata["checkpoints"] = [
                 cp
                 for cp in self.metadata["checkpoints"]
-                if cp.get("is_best", False) or cp in regular_checkpoints[-self.max_checkpoints :]
+                if cp.get("is_best", False) or cp in regular_checkpoints[-self.max_checkpoints:]
             ]
 
     def _compute_model_hash(self, model: nn.Module) -> str:
@@ -555,8 +555,6 @@ if __name__ == "__main__":
         print(f"TorchScript export failed: {e}")
 
     # Cleanup test directory
-    import shutil
-
     print("\n7. Cleaning up...")
     if Path("test_checkpoints").exists():
         shutil.rmtree("test_checkpoints")

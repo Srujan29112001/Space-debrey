@@ -5,7 +5,7 @@ Defines the structure of the space knowledge graph
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List
+from typing import List
 
 
 class RiskLevel(Enum):

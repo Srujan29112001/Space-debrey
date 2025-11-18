@@ -6,7 +6,7 @@ Generates and sends collision alerts to operators
 import asyncio
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List
+from typing import Dict
 
 
 class AlertLevel(Enum):
@@ -72,7 +72,6 @@ class AlertSystem:
         """Determine alert severity level"""
         prob = conjunction["collision_probability"]
         dist = conjunction["miss_distance"]
-        time_to = conjunction["time_to_tca"] / 3600  # hours
 
         # Critical: Very high probability or very close approach
         if prob > 0.001 or dist < 0.5:

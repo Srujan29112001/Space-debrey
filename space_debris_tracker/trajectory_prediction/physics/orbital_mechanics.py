@@ -3,8 +3,7 @@ Orbital Mechanics
 Implements orbital propagation with perturbations
 """
 
-import math
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 
@@ -190,8 +189,6 @@ class OrbitalMechanics:
     def _in_shadow(self, position: np.ndarray) -> bool:
         """Check if position is in Earth's shadow"""
         # Simplified cylindrical shadow model
-        r = np.linalg.norm(position)
-
         # Sun direction (simplified)
         sun_dir = np.array([1.0, 0.0, 0.0])
 

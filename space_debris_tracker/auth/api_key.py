@@ -242,7 +242,7 @@ if __name__ == "__main__":
         expires_in_days=365,
     )
 
-    print(f"Generated API Key:")
+    print("Generated API Key:")
     print(f"  Key ID: {key_id}")
     print(f"  API Key: {api_key}")
     print("\n⚠️  Save this API key securely - it won't be shown again!")
@@ -250,12 +250,12 @@ if __name__ == "__main__":
     # Validate
     key_obj = manager.validate_api_key(api_key)
     if key_obj:
-        print(f"\n✓ Valid API key")
+        print("\n✓ Valid API key")
         print(f"  Name: {key_obj.name}")
         print(f"  Permissions: {key_obj.permissions}")
         print(f"  Rate limit: {key_obj.rate_limit} req/min")
 
     # List keys
-    print(f"\nAll API keys:")
+    print("\nAll API keys:")
     for key_info in manager.list_api_keys():
         print(f"  {key_info['key_id']}: {key_info['name']}")

@@ -9,7 +9,7 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import numpy as np
 
@@ -247,9 +247,6 @@ class StreamProcessor:
     async def _route_events(self, events: List[Dict]):
         """Route processed events to output queues"""
         for event in events:
-            # Determine routing based on event type
-            event_type = event.get("type", "default")
-
             # Send to all matching output queues
             for output_name, output_queue in self.output_queues.items():
                 if self._should_route(event, output_name):
@@ -266,8 +263,6 @@ class StreamProcessor:
     def _should_route(self, event: Dict, output_name: str) -> bool:
         """Determine if event should be routed to output"""
         # Default routing logic
-        event_type = event.get("type", "")
-
         routing_rules = {
             "detection": lambda e: "detection" in e.get("type", ""),
             "tracking": lambda e: "track" in e.get("type", ""),

@@ -115,7 +115,7 @@ if __name__ == "__main__":
     # Test transformer
     model = TrajectoryTransformer(d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6)
 
-    print(f"Trajectory Transformer:")
+    print("Trajectory Transformer:")
     print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
 
     # Test forward pass

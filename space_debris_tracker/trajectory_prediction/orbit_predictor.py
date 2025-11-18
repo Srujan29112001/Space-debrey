@@ -4,11 +4,10 @@ Integrates PINN, Transformer, and Mamba2 for comprehensive trajectory prediction
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 
 import numpy as np
 import torch
-import torch.nn as nn
 
 from .mamba.mamba2_predictor import Mamba2Predictor
 from .physics.orbital_mechanics import OrbitalMechanics
@@ -98,7 +97,6 @@ class OrbitPredictionEngine:
         """
         # Generate time steps
         time_steps = np.arange(0, time_horizon, dt)
-        n_steps = len(time_steps)
 
         # Convert to torch
         state = torch.from_numpy(initial_state).float().to(self.device)
@@ -253,7 +251,7 @@ class OrbitPredictionEngine:
             long_term = self.mamba(context.unsqueeze(0)).squeeze(0)
 
         # Take only the future part
-        return long_term[-len(time_steps) :]
+        return long_term[-len(time_steps):]
 
     def _encode_nearby_objects(self) -> torch.Tensor:
         """Encode nearby objects for Transformer"""

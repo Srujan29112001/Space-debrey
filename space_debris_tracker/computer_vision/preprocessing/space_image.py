@@ -3,8 +3,6 @@ Space-specific image preprocessing
 Handles star removal, cosmic ray detection, contrast enhancement
 """
 
-from typing import Tuple
-
 import cv2
 import numpy as np
 

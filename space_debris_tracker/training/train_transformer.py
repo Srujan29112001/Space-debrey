@@ -4,9 +4,8 @@ Sequence-to-sequence training with teacher forcing and multi-object modeling
 """
 
 import random
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict
 
 import numpy as np
 import torch
@@ -86,7 +85,7 @@ class TransformerTrainer:
         # Current teacher forcing ratio
         self.current_tf_ratio = self.teacher_forcing_ratio
 
-        print(f"TransformerTrainer initialized")
+        print("TransformerTrainer initialized")
         print(f"  Epochs: {self.epochs}")
         print(f"  Teacher forcing ratio: {self.teacher_forcing_ratio}")
         print(f"  Warmup epochs: {self.warmup_epochs}")
@@ -354,7 +353,7 @@ class TransformerTrainer:
             if val_metrics["loss"] < self.best_val_loss:
                 self.best_val_loss = val_metrics["loss"]
                 self.save_checkpoint(epoch, is_best=True)
-                print(f"  New best model saved!")
+                print("  New best model saved!")
 
             # Save regular checkpoint
             if epoch % 10 == 0:
