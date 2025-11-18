@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import requests
 import streamlit as st
 
 # Page config
@@ -113,11 +112,11 @@ class SpaceDebrisDashboard:
 
             # Time range
             st.subheader("⏰ Time Range")
-            time_range = st.slider("Prediction Horizon (days)", min_value=1, max_value=30, value=7)
+            st.slider("Prediction Horizon (days)", min_value=1, max_value=30, value=7)
 
             # Risk thresholds
             st.subheader("⚠️ Risk Thresholds")
-            prob_threshold = st.number_input(
+            st.number_input(
                 "Collision Probability",
                 min_value=1e-6,
                 max_value=1e-2,
@@ -127,7 +126,7 @@ class SpaceDebrisDashboard:
 
             # Update rate
             st.subheader("🔄 Update Rate")
-            update_rate = st.selectbox(
+            st.selectbox(
                 "Refresh Rate",
                 options=["Real-time (1 Hz)", "Every 10s", "Every minute", "Manual"],
                 index=1,
@@ -369,7 +368,7 @@ class SpaceDebrisDashboard:
 
         # Details expander
         with st.expander("🔍 View Detailed Analysis"):
-            selected_conj = st.selectbox(
+            st.selectbox(
                 "Select Conjunction",
                 conjunctions["Primary"] + " vs " + conjunctions["Secondary"],
             )

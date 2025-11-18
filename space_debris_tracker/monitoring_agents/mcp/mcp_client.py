@@ -6,7 +6,7 @@ Uses ZeroMQ for message passing between monitoring agents
 import asyncio
 import json
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 try:
     import zmq

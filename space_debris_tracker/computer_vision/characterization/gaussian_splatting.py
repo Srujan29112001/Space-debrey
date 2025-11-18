@@ -3,12 +3,10 @@
 Reconstructs 3D shape and estimates tumble rate from multi-view imagery
 """
 
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
-import cv2
 import numpy as np
 import torch
-import torch.nn as nn
 
 
 class GaussianSplatting3D:
@@ -171,7 +169,7 @@ class GaussianSplatting3D:
 
             hull = ConvexHull(points_np)
             surface_area = hull.area
-        except:
+        except Exception:
             # Fallback: approximate as sphere
             radius = np.mean(bbox_size) / 2.0
             surface_area = 4 * np.pi * radius**2
@@ -186,7 +184,7 @@ class GaussianSplatting3D:
             # Sort by eigenvalue magnitude
             idx = eigenvalues.argsort()[::-1]
             principal_axes = eigenvectors[:, idx]
-        except:
+        except Exception:
             principal_axes = np.eye(3)
 
         return {

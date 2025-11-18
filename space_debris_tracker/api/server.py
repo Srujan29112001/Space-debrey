@@ -4,20 +4,16 @@ Provides REST, GraphQL, and WebSocket endpoints
 """
 
 import asyncio
-import json
 from datetime import datetime
-from typing import Dict, List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 
 # Import main components
 from space_debris_tracker import (
     OrbitPredictionEngine,
     SpaceDebrisDetector,
     SpaceKnowledgeGraph,
-    SpaceMonitoringAgent,
 )
 
 from .graphql_api import graphql_app

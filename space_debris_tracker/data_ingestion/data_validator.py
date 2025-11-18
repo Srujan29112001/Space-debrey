@@ -5,7 +5,7 @@ Validates and normalizes incoming space debris data
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np

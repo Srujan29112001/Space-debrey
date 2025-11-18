@@ -3,7 +3,6 @@ Deep Ensemble for Uncertainty Quantification
 """
 
 from copy import deepcopy
-from typing import List
 
 import numpy as np
 import torch
@@ -59,7 +58,6 @@ class DeepEnsemble:
             Uncertainty estimates [N, 6]
         """
         device = initial_state.device
-        n_steps = len(time_steps)
 
         # Collect predictions from all models
         predictions = []

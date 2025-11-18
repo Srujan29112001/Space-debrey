@@ -3,7 +3,7 @@ RL-based Observation Scheduler
 Prioritizes observations based on collision risk and resource constraints
 """
 
-from typing import Dict, List
+from typing import Dict
 
 import numpy as np
 import torch

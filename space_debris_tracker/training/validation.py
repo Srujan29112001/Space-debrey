@@ -5,13 +5,11 @@ Comprehensive evaluation for detection, trajectory prediction, and risk assessme
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn as nn
-from scipy.stats import ks_2samp
 from sklearn.metrics import auc, precision_recall_curve, roc_auc_score
 
 
@@ -166,7 +164,6 @@ class DetectionEvaluator:
         # Sort by score
         indices = np.argsort(all_scores)[::-1]
         matches = np.array(all_matches)[indices]
-        scores = np.array(all_scores)[indices]
 
         # Compute precision and recall
         tp = np.cumsum(matches)
@@ -303,7 +300,6 @@ class TrajectoryEvaluator:
         pred_pos = predictions[:, :, :3]  # [B, T, 3]
         targ_pos = targets[:, :, :3]
 
-        pred_vel = predictions[:, :, 3:]
         targ_vel = targets[:, :, 3:]
 
         # Position errors

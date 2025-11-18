@@ -5,7 +5,6 @@ Combines neural networks with orbital mechanics for trajectory prediction
 
 from typing import List, Tuple
 
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -228,7 +227,7 @@ if __name__ == "__main__":
         input_dim=7, hidden_dims=[256, 512, 256], output_dim=6, physics_loss_weight=0.1
     )
 
-    print(f"PINN architecture:")
+    print("PINN architecture:")
     print(pinn)
     print(f"\nTotal parameters: {sum(p.numel() for p in pinn.parameters()):,}")
 

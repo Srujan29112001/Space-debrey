@@ -3,7 +3,6 @@ Kafka Consumers for Space Debris Data
 Handles telescope images, radar returns, and streaming data
 """
 
-import asyncio
 import base64
 import json
 import logging
@@ -11,12 +10,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List
 
 import cv2
 import msgpack
 import numpy as np
-from kafka import KafkaConsumer, TopicPartition
+from kafka import KafkaConsumer
 from kafka.errors import KafkaError
 
 logger = logging.getLogger(__name__)
@@ -240,7 +239,7 @@ class TelescopeImageConsumer:
         try:
             # Try MessagePack first (more efficient for binary data)
             return msgpack.unpackb(raw_message, raw=False)
-        except:
+        except Exception:
             # Fall back to JSON
             return json.loads(raw_message.decode("utf-8"))
 

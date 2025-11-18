@@ -6,9 +6,8 @@ Generic trainer supporting all models with DDP, mixed precision, and W&B integra
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict
 
-import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -16,7 +15,7 @@ import torch.optim as optim
 import yaml
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 try:
@@ -32,7 +31,6 @@ except ImportError:
     WANDB_AVAILABLE = False
 
 from .checkpoint_manager import CheckpointManager
-from .validation import ConjunctionEvaluator, DetectionEvaluator, TrajectoryEvaluator
 
 
 class EarlyStopping:
@@ -213,7 +211,7 @@ class UnifiedTrainer:
             self._save_config()
 
         if self.is_main_process:
-            print(f"\nUnifiedTrainer initialized")
+            print("\nUnifiedTrainer initialized")
             print(f"  Model: {config.get('model_name', 'model')}")
             print(f"  Epochs: {self.epochs}")
             print(f"  Device: {device}")

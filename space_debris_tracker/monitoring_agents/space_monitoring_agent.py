@@ -5,7 +5,7 @@ Autonomous agent for continuous satellite monitoring and collision assessment
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import numpy as np
 
@@ -100,9 +100,7 @@ class SpaceMonitoringAgent:
                 self.active_conjunctions = conjunctions
 
                 # 4. Prioritize observations using RL scheduler
-                observation_plan = self.observation_scheduler.get_action(
-                    state=self.encode_state(state, conjunctions)
-                )
+                self.observation_scheduler.get_action(state=self.encode_state(state, conjunctions))
 
                 # 5. Share information with other agents via MCP
                 await self.mcp_client.broadcast(

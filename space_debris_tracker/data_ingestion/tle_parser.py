@@ -4,7 +4,6 @@ Parses orbital element data from NORAD and Space-Track.org
 """
 
 import logging
-import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path

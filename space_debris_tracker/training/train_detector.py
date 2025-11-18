@@ -3,16 +3,12 @@ YOLOv7 Detector Training
 Complete training loop with multi-scale training, augmentation, and checkpointing
 """
 
-import math
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import yaml
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -23,7 +19,7 @@ except ImportError:
     SummaryWriter = None
 
 from ..computer_vision.detector import YOLOv7Detector
-from .dataset import DebrisImageDataset, create_dataloaders
+from .dataset import create_dataloaders
 
 
 class YOLOv7Loss(nn.Module):
@@ -265,7 +261,7 @@ class YOLOv7Trainer:
         else:
             self.img_sizes = [self.img_size]
 
-        print(f"YOLOv7Trainer initialized")
+        print("YOLOv7Trainer initialized")
         print(f"  Epochs: {self.epochs}")
         print(f"  Batch size: {self.batch_size}")
         print(f"  Image size: {self.img_size}")
@@ -329,12 +325,12 @@ class YOLOv7Trainer:
         for i, batch in enumerate(pbar):
             # Multi-scale training
             if self.multi_scale and i % 10 == 0:
-                img_size = np.random.choice(self.img_sizes)
                 # Resize would happen here - simplified
+                pass
 
             images = batch["images"].to(self.device)
             bboxes = [b.to(self.device) for b in batch["bboxes"]]
-            labels = [l.to(self.device) for l in batch["labels"]]
+            labels = [label_item.to(self.device) for label_item in batch["labels"]]
 
             # Forward pass
             with autocast(enabled=self.use_amp):
@@ -409,7 +405,7 @@ class YOLOv7Trainer:
             for batch in tqdm(self.val_loader, desc="Validation"):
                 images = batch["images"].to(self.device)
                 bboxes = [b.to(self.device) for b in batch["bboxes"]]
-                labels = [l.to(self.device) for l in batch["labels"]]
+                labels = [label_item.to(self.device) for label_item in batch["labels"]]
 
                 # Forward pass
                 with autocast(enabled=self.use_amp):
@@ -464,7 +460,7 @@ class YOLOv7Trainer:
             if val_metrics["total_loss"] < self.best_loss:
                 self.best_loss = val_metrics["total_loss"]
                 self.save_checkpoint(epoch, is_best=True)
-                print(f"  New best model saved!")
+                print("  New best model saved!")
 
             # Save regular checkpoint
             if epoch % 10 == 0:

@@ -3,11 +3,9 @@ Physics-Informed Neural Network (PINN) Training
 Combines data loss with physics constraints for orbital mechanics
 """
 
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -114,7 +112,7 @@ class PINNTrainer:
         # Best metrics
         self.best_val_loss = float("inf")
 
-        print(f"PINNTrainer initialized")
+        print("PINNTrainer initialized")
         print(f"  Epochs: {self.epochs}")
         print(f"  Physics loss weight: {self.physics_loss_weight}")
         print(f"  Adaptive weighting: {self.adaptive_weights}")
@@ -404,7 +402,7 @@ class PINNTrainer:
             if val_metrics["total_loss"] < self.best_val_loss:
                 self.best_val_loss = val_metrics["total_loss"]
                 self.save_checkpoint(epoch, is_best=True)
-                print(f"  New best model saved!")
+                print("  New best model saved!")
 
             # Save regular checkpoint
             if epoch % 10 == 0:

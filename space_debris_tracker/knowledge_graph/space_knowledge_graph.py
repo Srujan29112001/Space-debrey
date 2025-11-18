@@ -4,9 +4,7 @@ Neo4j-based graph for satellites, debris, orbits, and conjunctions
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
-
-import numpy as np
+from typing import Dict, List
 
 try:
     from neo4j import GraphDatabase
@@ -93,7 +91,7 @@ class SpaceKnowledgeGraph:
             for query in queries:
                 try:
                     session.run(query)
-                except Exception as e:
+                except Exception:
                     # Constraint/index might already exist
                     pass
 

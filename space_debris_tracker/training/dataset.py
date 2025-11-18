@@ -240,7 +240,7 @@ class OrbitDataset(Dataset):
         """Load orbit data from HDF5"""
         if not self.data_path.exists():
             # Create synthetic data for demonstration
-            print(f"Data file not found, creating synthetic data...")
+            print("Data file not found, creating synthetic data...")
             self.trajectories = self._create_synthetic_data(n_trajectories=1000)
             self.timestamps = None
         else:
@@ -319,12 +319,12 @@ class OrbitDataset(Dataset):
         traj_idx, start_idx = self.indices[idx]
 
         # Extract sequence
-        input_seq = self.trajectories[traj_idx, start_idx : start_idx + self.sequence_length].copy()
+        input_seq = self.trajectories[traj_idx, start_idx:start_idx + self.sequence_length].copy()
 
         target_seq = self.trajectories[
             traj_idx,
             start_idx
-            + self.sequence_length : start_idx
+            + self.sequence_length:start_idx
             + self.sequence_length
             + self.prediction_horizon,
         ].copy()
@@ -338,11 +338,11 @@ class OrbitDataset(Dataset):
 
         # Get timestamps if available
         if self.timestamps is not None:
-            input_times = self.timestamps[traj_idx, start_idx : start_idx + self.sequence_length]
+            input_times = self.timestamps[traj_idx, start_idx:start_idx + self.sequence_length]
             target_times = self.timestamps[
                 traj_idx,
                 start_idx
-                + self.sequence_length : start_idx
+                + self.sequence_length:start_idx
                 + self.sequence_length
                 + self.prediction_horizon,
             ]
@@ -409,9 +409,6 @@ class ConjunctionDataset(Dataset):
 
         for _ in range(n_events):
             # Create two nearby orbits
-            a1 = np.random.uniform(7000, 8000)
-            a2 = a1 + np.random.uniform(-100, 100)
-
             # Propagate both
             traj_len = self.lookback + self.time_to_tca
             primary = np.random.randn(traj_len, 6) * 100 + 7000

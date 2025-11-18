@@ -4,11 +4,9 @@ Efficient state space model training with memory-efficient batching
 """
 
 import gc
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -84,7 +82,7 @@ class MemoryEfficientMambaTrainer:
         if self.gradient_checkpointing:
             self._enable_gradient_checkpointing()
 
-        print(f"MambaTrainer initialized")
+        print("MambaTrainer initialized")
         print(f"  Epochs: {self.epochs}")
         print(f"  Chunk size: {self.chunk_size}")
         print(f"  Gradient checkpointing: {self.gradient_checkpointing}")
@@ -137,7 +135,7 @@ class MemoryEfficientMambaTrainer:
         chunks = []
 
         for i in range(0, seq_len, chunk_size):
-            chunk = sequence[:, i : i + chunk_size, :]
+            chunk = sequence[:, i:i + chunk_size, :]
             chunks.append(chunk)
 
         return chunks
@@ -277,7 +275,7 @@ class MemoryEfficientMambaTrainer:
             # Process current sequence
             if current_seq.shape[1] > self.chunk_size:
                 # Only use last chunk_size states
-                pred = self.model(current_seq[:, -self.chunk_size :, :])
+                pred = self.model(current_seq[:, -self.chunk_size:, :])
                 next_state = pred[:, -1:, :]
             else:
                 pred = self.model(current_seq)
@@ -290,7 +288,7 @@ class MemoryEfficientMambaTrainer:
 
             # Keep only recent history to save memory
             if current_seq.shape[1] > self.chunk_size:
-                current_seq = current_seq[:, -self.chunk_size :, :]
+                current_seq = current_seq[:, -self.chunk_size:, :]
 
         return torch.cat(predictions, dim=1)
 
@@ -405,7 +403,7 @@ class MemoryEfficientMambaTrainer:
             print(f"\nEpoch {epoch}/{self.epochs}")
             print(f"  Train Loss: {train_metrics['loss']:.6f}")
             print(f"  Val Loss: {val_metrics['loss']:.6f}")
-            print(f"  Val Metrics:")
+            print("  Val Metrics:")
             print(f"    Position RMSE: {val_metrics['position_rmse']:.6f} km")
             print(f"    Short-term (1-10): {val_metrics['short_term_rmse']:.6f} km")
             print(f"    Medium-term (11-30): {val_metrics['medium_term_rmse']:.6f} km")
@@ -423,7 +421,7 @@ class MemoryEfficientMambaTrainer:
             if val_metrics["loss"] < self.best_val_loss:
                 self.best_val_loss = val_metrics["loss"]
                 self.save_checkpoint(epoch, is_best=True)
-                print(f"  New best model saved!")
+                print("  New best model saved!")
 
             # Save regular checkpoint
             if epoch % 10 == 0:

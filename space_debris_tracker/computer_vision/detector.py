@@ -277,7 +277,7 @@ class DINOv2Detector:
 
     def detect_novel_objects(self, image: np.ndarray, threshold: float = 0.5) -> List[Detection]:
         """Detect novel objects using DINO features"""
-        features = self.extract_features(image)
+        self.extract_features(image)
 
         # In production: Use features for zero-shot detection
         # clustering, anomaly detection, etc.
