@@ -314,6 +314,10 @@ pytest --cov=space_debris_tracker --cov-report=html
 
 ## 📚 Documentation
 
+### Getting Started
+- **[Quick Start Guide](QUICKSTART.md)** - Get up and running in 5 minutes
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Complete guide for building, testing, and deploying to production
+
 ### API Documentation
 - **Swagger UI**: http://localhost:8000/api/docs
 - **ReDoc**: http://localhost:8000/api/redoc
@@ -323,7 +327,6 @@ pytest --cov=space_debris_tracker --cov-report=html
 - [Trajectory Prediction](docs/trajectory_prediction.md)
 - [Knowledge Graph](docs/knowledge_graph.md)
 - [Monitoring Agents](docs/monitoring_agents.md)
-- [Deployment Guide](docs/deployment.md)
 
 ## 🎯 Use Cases
 
